@@ -32,7 +32,13 @@
 5. **Công Cụ Tiện Ích**:
    - **Máy tính nhanh CSKB**: Đổi viên lẻ sang gói x999 và tính tiền; Đổi gói sang tổng viên.
    - **Quy đổi tỷ giá**: Chuyển đổi linh hoạt giữa Thỏi Vàng (TV) và VND theo tỷ giá thị trường.
-   - **Lưu trữ Offline 100%**: Sử dụng SQLite cục bộ, không lo mất dữ liệu, không cần kết nối internet.
+
+6. **Đồng Bộ Trực Tuyến & Quản Lý Đội Nhóm (Supabase Realtime Cloud)** 👥:
+   - **Dùng chung nhiều người**: Cho phép cả nhóm bạn cùng kết nối vào một kho CSKB chung thông qua **Mã Nhóm (Team Code)** (ví dụ: `CSKB-7891`).
+   - **Phân công nhiệm vụ**: Người chuyên cắm acc ghi ca up, người chuyên mua máy dò, người phụ trách bán hàng x999.
+   - **Nhảy số tức thì (Realtime WebSockets)**: Khi máy A ghi nhận ca up hoặc bán gói x999, màn hình máy B lập tức cập nhật tồn kho ngay sau 0.5s!
+   - **Kiến trúc Offline-First**: Mất mạng vẫn hoạt động mượt mà với SQLite cục bộ; khi có mạng tự động đồng bộ lên Cloud.
+   - **Kèm sẵn Script SQL [supabase_schema.sql](supabase_schema.sql)** để khởi tạo CSDL miễn phí trên Supabase chỉ trong 1 click.
 
 ---
 

@@ -9,6 +9,7 @@ import 'farming/farming_view.dart';
 import 'sales/sales_view.dart';
 import 'reports/reports_view.dart';
 import 'calculator/calculator_view.dart';
+import 'sync/team_sync_view.dart';
 import 'settings/settings_view.dart';
 
 class MainScreen extends StatefulWidget {
@@ -28,6 +29,7 @@ class _MainScreenState extends State<MainScreen> {
     SalesView(),
     ReportsView(),
     CalculatorView(),
+    TeamSyncView(),
     SettingsView(),
   ];
 
@@ -55,7 +57,7 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           // Sidebar bên trái
           Container(
-            width: 240,
+            width: 245,
             decoration: const BoxDecoration(
               color: Color(0xFF141E33),
               border: Border(
@@ -112,6 +114,59 @@ class _MainScreenState extends State<MainScreen> {
                     ],
                   ),
                 ),
+
+                // Trạng thái Team online badge
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () {
+                      setState(() {
+                        _selectedIndex = 6; // Chuyển sang tab Đội nhóm
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: provider.isOnlineMode
+                            ? AppTheme.successGreen.withOpacity(0.12)
+                            : Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: provider.isOnlineMode
+                              ? AppTheme.successGreen.withOpacity(0.5)
+                              : Colors.white12,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.circle,
+                            size: 8,
+                            color: provider.isOnlineMode ? AppTheme.successGreen : Colors.grey,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              provider.isOnlineMode
+                                  ? 'Nhóm: ${provider.currentTeamCode}'
+                                  : 'Chế độ: Cục bộ (Offline)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: provider.isOnlineMode ? AppTheme.successGreen : Colors.grey[400],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right, size: 14, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
                 const Divider(height: 1, color: AppTheme.borderDark),
                 const SizedBox(height: 12),
 
@@ -127,7 +182,14 @@ class _MainScreenState extends State<MainScreen> {
                       _buildMenuItem(4, Icons.query_stats_outlined, Icons.query_stats, 'Báo Cáo Lời / Lỗ'),
                       const Divider(height: 24, color: AppTheme.borderDark),
                       _buildMenuItem(5, Icons.calculate_outlined, Icons.calculate, 'Máy Tính CSKB'),
-                      _buildMenuItem(6, Icons.settings_outlined, Icons.settings, 'Cài Đặt & Chi Phí'),
+                      _buildMenuItem(
+                        6,
+                        Icons.cloud_sync_outlined,
+                        Icons.cloud_sync,
+                        'Đội Nhóm Online',
+                        badgeText: provider.isOnlineMode ? 'LIVE' : null,
+                      ),
+                      _buildMenuItem(7, Icons.settings_outlined, Icons.settings, 'Cài Đặt & Chi Phí'),
                     ],
                   ),
                 ),
@@ -140,7 +202,9 @@ class _MainScreenState extends State<MainScreen> {
                       const Icon(Icons.shield_outlined, size: 16, color: Colors.grey),
                       const SizedBox(width: 8),
                       Text(
-                        'v${AppConstants.version} Offline DB',
+                        provider.isOnlineMode
+                            ? 'v${AppConstants.version} Cloud Sync'
+                            : 'v${AppConstants.version} Offline DB',
                         style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                       ),
                     ],
@@ -159,7 +223,13 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildMenuItem(int index, IconData unselectedIcon, IconData selectedIcon, String title) {
+  Widget _buildMenuItem(
+    int index,
+    IconData unselectedIcon,
+    IconData selectedIcon,
+    String title, {
+    String? badgeText,
+  }) {
     final isSelected = _selectedIndex == index;
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -177,13 +247,37 @@ class _MainScreenState extends State<MainScreen> {
           color: isSelected ? AppTheme.primaryGold : Colors.grey[400],
           size: 20,
         ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? AppTheme.primaryGold : Colors.white70,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 13,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isSelected ? AppTheme.primaryGold : Colors.white70,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (badgeText != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.successGreen,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  badgeText,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         onTap: () {
           setState(() {

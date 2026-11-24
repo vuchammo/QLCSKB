@@ -5,8 +5,10 @@ import '../models/farming_session.dart';
 import '../models/cskb_sale.dart';
 import '../models/other_expense.dart';
 import '../models/profit_loss_summary.dart';
+import '../models/team_model.dart';
 import '../services/database_service.dart';
 import '../services/calculation_service.dart';
+import '../services/supabase_service.dart';
 
 enum DateFilterMode {
   all,
@@ -19,6 +21,7 @@ enum DateFilterMode {
 
 class AppProvider extends ChangeNotifier {
   final DatabaseService _dbService = DatabaseService();
+  final SupabaseService _supabase = SupabaseService.instance;
 
   List<DetectorPurchase> _detectorPurchases = [];
   List<FarmingSession> _farmingSessions = [];
@@ -28,6 +31,14 @@ class AppProvider extends ChangeNotifier {
   double _exchangeRateTvToVnd = AppConstants.defaultTvToVndRate;
   String _defaultCurrency = AppConstants.currencyVnd;
   bool _isLoading = true;
+
+  // Trạng thái Cloud & Đội nhóm
+  String? _currentTeamCode;
+  String? _currentTeamName;
+  String _memberName = 'Dân cày NRO';
+  String _supabaseUrl = '';
+  String _supabaseAnonKey = '';
+  List<TeamMember> _teamMembers = [];
 
   DateFilterMode _dateFilterMode = DateFilterMode.all;
   DateTime? _customStartDate;
@@ -44,6 +55,15 @@ class AppProvider extends ChangeNotifier {
   DateFilterMode get dateFilterMode => _dateFilterMode;
   DateTime? get customStartDate => _customStartDate;
   DateTime? get customEndDate => _customEndDate;
+
+  // Getters Cloud & Đội nhóm
+  bool get isOnlineMode => _currentTeamCode != null && _currentTeamCode!.isNotEmpty;
+  String? get currentTeamCode => _currentTeamCode;
+  String? get currentTeamName => _currentTeamName;
+  String get memberName => _memberName;
+  String get supabaseUrl => _supabaseUrl;
+  String get supabaseAnonKey => _supabaseAnonKey;
+  List<TeamMember> get teamMembers => _teamMembers;
 
   // Summary được tính toán tự động
   ProfitLossSummary get summary {
@@ -89,11 +109,7 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _detectorPurchases = await _dbService.getAllDetectorPurchases();
-      _farmingSessions = await _dbService.getAllFarmingSessions();
-      _cskbSales = await _dbService.getAllCskbSales();
-      _otherExpenses = await _dbService.getAllOtherExpenses();
-
+      // 1. Tải cài đặt cục bộ
       final rateStr = await _dbService.getSetting(AppConstants.settingExchangeRateTvToVnd);
       if (rateStr != null) {
         _exchangeRateTvToVnd = double.tryParse(rateStr) ?? AppConstants.defaultTvToVndRate;
@@ -103,44 +119,205 @@ class AppProvider extends ChangeNotifier {
       if (curr != null) {
         _defaultCurrency = curr;
       }
+
+      final url = await _dbService.getSetting(AppConstants.settingSupabaseUrl);
+      final key = await _dbService.getSetting(AppConstants.settingSupabaseAnonKey);
+      _supabaseUrl = url ?? '';
+      _supabaseAnonKey = key ?? '';
+
+      final teamCode = await _dbService.getSetting(AppConstants.settingCurrentTeamCode);
+      final teamName = await _dbService.getSetting(AppConstants.settingCurrentTeamName);
+      final member = await _dbService.getSetting(AppConstants.settingMemberName);
+
+      _currentTeamCode = teamCode;
+      _currentTeamName = teamName;
+      if (member != null && member.isNotEmpty) {
+        _memberName = member;
+      }
+
+      // 2. Nếu có cấu hình Supabase và đang ở chế độ nhóm
+      if (_supabaseUrl.isNotEmpty && _supabaseAnonKey.isNotEmpty) {
+        final initialized = await _supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
+
+        if (initialized && _currentTeamCode != null && _currentTeamCode!.isNotEmpty) {
+          await _refreshOnlineTeamData();
+          _setupRealtimeSync();
+          _isLoading = false;
+          notifyListeners();
+          return;
+        }
+      }
+
+      // 3. Mặc định tải từ CSDL SQLite cục bộ (Offline)
+      await _loadLocalData();
     } catch (e) {
       debugPrint('Error loading data: $e');
+      await _loadLocalData();
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
+  Future<void> _loadLocalData() async {
+    _detectorPurchases = await _dbService.getAllDetectorPurchases();
+    _farmingSessions = await _dbService.getAllFarmingSessions();
+    _cskbSales = await _dbService.getAllCskbSales();
+    _otherExpenses = await _dbService.getAllOtherExpenses();
+  }
+
+  Future<void> _refreshOnlineTeamData() async {
+    if (_currentTeamCode == null || _currentTeamCode!.isEmpty) return;
+    try {
+      _detectorPurchases = await _supabase.fetchDetectorPurchases(_currentTeamCode!);
+      _farmingSessions = await _supabase.fetchFarmingSessions(_currentTeamCode!);
+      _cskbSales = await _supabase.fetchCskbSales(_currentTeamCode!);
+      _otherExpenses = await _supabase.fetchOtherExpenses(_currentTeamCode!);
+      _teamMembers = await _supabase.getTeamMembers(_currentTeamCode!);
+
+      final cloudRate = await _supabase.getTeamSetting(_currentTeamCode!, AppConstants.settingExchangeRateTvToVnd);
+      if (cloudRate != null) {
+        _exchangeRateTvToVnd = double.tryParse(cloudRate) ?? _exchangeRateTvToVnd;
+      }
+    } catch (e) {
+      debugPrint('Error refreshing online team data: $e');
+    }
+  }
+
+  void _setupRealtimeSync() {
+    if (_currentTeamCode == null || _currentTeamCode!.isEmpty) return;
+    _supabase.subscribeToTeamChanges(_currentTeamCode!, () async {
+      debugPrint('Nhận tín hiệu đồng bộ Realtime từ thiết bị khác!');
+      await _refreshOnlineTeamData();
+      notifyListeners();
+    });
+  }
+
+  // =================== QUẢN LÝ ĐỘI NHÓM & CLOUD ===================
+
+  Future<bool> connectSupabase(String url, String anonKey) async {
+    final success = await _supabase.initialize(url: url, anonKey: anonKey);
+    if (success) {
+      _supabaseUrl = url;
+      _supabaseAnonKey = anonKey;
+      await _dbService.setSetting(AppConstants.settingSupabaseUrl, url);
+      await _dbService.setSetting(AppConstants.settingSupabaseAnonKey, anonKey);
+      notifyListeners();
+    }
+    return success;
+  }
+
+  Future<Team?> createTeamOnline(String teamName, String ownerName) async {
+    if (!_supabase.isInitialized) return null;
+    final team = await _supabase.createTeam(teamName, ownerName);
+    if (team != null) {
+      _currentTeamCode = team.code;
+      _currentTeamName = team.name;
+      _memberName = ownerName;
+
+      await _dbService.setSetting(AppConstants.settingCurrentTeamCode, team.code);
+      await _dbService.setSetting(AppConstants.settingCurrentTeamName, team.name);
+      await _dbService.setSetting(AppConstants.settingMemberName, ownerName);
+
+      await _refreshOnlineTeamData();
+      _setupRealtimeSync();
+      notifyListeners();
+    }
+    return team;
+  }
+
+  Future<bool> joinTeamOnline(String teamCode, String memberName, {String role = 'MEMBER'}) async {
+    if (!_supabase.isInitialized) return false;
+    final success = await _supabase.joinTeam(teamCode, memberName, role: role);
+    if (success) {
+      final team = await _supabase.getTeam(teamCode);
+      _currentTeamCode = team?.code ?? teamCode;
+      _currentTeamName = team?.name ?? 'Nhóm $teamCode';
+      _memberName = memberName;
+
+      await _dbService.setSetting(AppConstants.settingCurrentTeamCode, _currentTeamCode!);
+      await _dbService.setSetting(AppConstants.settingCurrentTeamName, _currentTeamName!);
+      await _dbService.setSetting(AppConstants.settingMemberName, memberName);
+
+      await _refreshOnlineTeamData();
+      _setupRealtimeSync();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> leaveTeamOnline() async {
+    _supabase.unsubscribe();
+    _currentTeamCode = null;
+    _currentTeamName = null;
+    await _dbService.setSetting(AppConstants.settingCurrentTeamCode, '');
+    await _dbService.setSetting(AppConstants.settingCurrentTeamName, '');
+
+    await _loadLocalData();
+    notifyListeners();
+  }
+
   // =================== MÁY DÒ ===================
   Future<void> addDetectorPurchase(DetectorPurchase purchase) async {
     await _dbService.insertDetectorPurchase(purchase);
-    _detectorPurchases = await _dbService.getAllDetectorPurchases();
+
+    if (isOnlineMode) {
+      await _supabase.insertDetectorPurchase(purchase, _currentTeamCode!, _memberName);
+      await _refreshOnlineTeamData();
+    } else {
+      _detectorPurchases = await _dbService.getAllDetectorPurchases();
+    }
     notifyListeners();
   }
 
   Future<void> deleteDetectorPurchase(String id) async {
     await _dbService.deleteDetectorPurchase(id);
-    _detectorPurchases = await _dbService.getAllDetectorPurchases();
+
+    if (isOnlineMode) {
+      await _supabase.deleteDetectorPurchase(id);
+      await _refreshOnlineTeamData();
+    } else {
+      _detectorPurchases = await _dbService.getAllDetectorPurchases();
+    }
     notifyListeners();
   }
 
   // =================== CA UP CSKB ===================
   Future<void> addFarmingSession(FarmingSession session) async {
     await _dbService.insertFarmingSession(session);
-    _farmingSessions = await _dbService.getAllFarmingSessions();
+
+    if (isOnlineMode) {
+      await _supabase.insertFarmingSession(session, _currentTeamCode!, _memberName);
+      await _refreshOnlineTeamData();
+    } else {
+      _farmingSessions = await _dbService.getAllFarmingSessions();
+    }
     notifyListeners();
   }
 
   Future<void> deleteFarmingSession(String id) async {
     await _dbService.deleteFarmingSession(id);
-    _farmingSessions = await _dbService.getAllFarmingSessions();
+
+    if (isOnlineMode) {
+      await _supabase.deleteFarmingSession(id);
+      await _refreshOnlineTeamData();
+    } else {
+      _farmingSessions = await _dbService.getAllFarmingSessions();
+    }
     notifyListeners();
   }
 
   // =================== ĐƠN BÁN CSKB ===================
   Future<void> addCskbSale(CskbSale sale) async {
     await _dbService.insertCskbSale(sale);
-    _cskbSales = await _dbService.getAllCskbSales();
+
+    if (isOnlineMode) {
+      await _supabase.insertCskbSale(sale, _currentTeamCode!, _memberName);
+      await _refreshOnlineTeamData();
+    } else {
+      _cskbSales = await _dbService.getAllCskbSales();
+    }
     notifyListeners();
   }
 
@@ -148,26 +325,50 @@ class AppProvider extends ChangeNotifier {
     final sale = _cskbSales.firstWhere((s) => s.id == id);
     final newStatus = sale.isPaid ? 'DEBT' : 'PAID';
     await _dbService.updateSaleStatus(id, newStatus);
-    _cskbSales = await _dbService.getAllCskbSales();
+
+    if (isOnlineMode) {
+      await _supabase.updateSaleStatus(id, newStatus);
+      await _refreshOnlineTeamData();
+    } else {
+      _cskbSales = await _dbService.getAllCskbSales();
+    }
     notifyListeners();
   }
 
   Future<void> deleteCskbSale(String id) async {
     await _dbService.deleteCskbSale(id);
-    _cskbSales = await _dbService.getAllCskbSales();
+
+    if (isOnlineMode) {
+      await _supabase.deleteCskbSale(id);
+      await _refreshOnlineTeamData();
+    } else {
+      _cskbSales = await _dbService.getAllCskbSales();
+    }
     notifyListeners();
   }
 
   // =================== CHI PHÍ KHÁC ===================
   Future<void> addOtherExpense(OtherExpense expense) async {
     await _dbService.insertOtherExpense(expense);
-    _otherExpenses = await _dbService.getAllOtherExpenses();
+
+    if (isOnlineMode) {
+      await _supabase.insertOtherExpense(expense, _currentTeamCode!, _memberName);
+      await _refreshOnlineTeamData();
+    } else {
+      _otherExpenses = await _dbService.getAllOtherExpenses();
+    }
     notifyListeners();
   }
 
   Future<void> deleteOtherExpense(String id) async {
     await _dbService.deleteOtherExpense(id);
-    _otherExpenses = await _dbService.getAllOtherExpenses();
+
+    if (isOnlineMode) {
+      await _supabase.deleteOtherExpense(id);
+      await _refreshOnlineTeamData();
+    } else {
+      _otherExpenses = await _dbService.getAllOtherExpenses();
+    }
     notifyListeners();
   }
 
@@ -175,6 +376,10 @@ class AppProvider extends ChangeNotifier {
   Future<void> updateExchangeRate(double rate) async {
     _exchangeRateTvToVnd = rate;
     await _dbService.setSetting(AppConstants.settingExchangeRateTvToVnd, rate.toString());
+
+    if (isOnlineMode) {
+      await _supabase.setTeamSetting(_currentTeamCode!, AppConstants.settingExchangeRateTvToVnd, rate.toString());
+    }
     notifyListeners();
   }
 
