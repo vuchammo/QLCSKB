@@ -9,8 +9,27 @@ import '../../core/utils/date_formatter.dart';
 import '../../models/farming_session.dart';
 import '../../models/cskb_usage.dart';
 
-class FarmingView extends StatelessWidget {
+class FarmingView extends StatefulWidget {
   const FarmingView({super.key});
+
+  @override
+  State<FarmingView> createState() => _FarmingViewState();
+}
+
+class _FarmingViewState extends State<FarmingView> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,45 +240,44 @@ class FarmingView extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Tab Lịch Sử: Ca Up CSKB & Lịch Sử Xuất Dùng Cá Nhân
-            DefaultTabController(
-              length: 2,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TabBar(
-                        indicatorColor: AppTheme.primaryGold,
-                        labelColor: AppTheme.primaryGold,
-                        unselectedLabelColor: Colors.grey,
-                        isScrollable: true,
-                        tabs: [
-                          Tab(
-                            icon: const Icon(Icons.history_toggle_off),
-                            text: '1. Nhật Ký Ca Treo Up (${provider.farmingSessions.length} ca)',
-                          ),
-                          Tab(
-                            icon: const Icon(Icons.card_giftcard),
-                            text: '2. Lịch Sử Dùng Cá Nhân (${provider.cskbUsages.length} lần)',
-                          ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TabBar(
+                      controller: _tabController,
+                      indicatorColor: AppTheme.primaryGold,
+                      labelColor: AppTheme.primaryGold,
+                      unselectedLabelColor: Colors.grey,
+                      isScrollable: true,
+                      tabs: [
+                        Tab(
+                          icon: const Icon(Icons.history_toggle_off),
+                          text: '1. Nhật Ký Ca Treo Up (${provider.farmingSessions.length} ca)',
+                        ),
+                        Tab(
+                          icon: const Icon(Icons.card_giftcard),
+                          text: '2. Lịch Sử Dùng Cá Nhân (${provider.cskbUsages.length} lần)',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 480,
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          // TAB 1: CA TREO UP CSKB
+                          _buildFarmingSessionsTab(context, provider),
+
+                          // TAB 2: LỊCH SỬ XUẤT DÙNG CÁ NHÂN
+                          _buildPersonalUsagesTab(context, provider),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        height: 480,
-                        child: TabBarView(
-                          children: [
-                            // TAB 1: CA TREO UP CSKB
-                            _buildFarmingSessionsTab(context, provider),
-
-                            // TAB 2: LỊCH SỬ XUẤT DÙNG CÁ NHÂN
-                            _buildPersonalUsagesTab(context, provider),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -668,7 +686,7 @@ class FarmingView extends StatelessWidget {
                   child: const Text('Hủy'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     final detectorsCount = int.tryParse(detectorsController.text.trim()) ?? 0;
                     final cskbCount = int.tryParse(cskbController.text.trim()) ?? 0;
 
@@ -689,8 +707,13 @@ class FarmingView extends StatelessWidget {
                       note: noteController.text.trim(),
                     );
 
-                    context.read<AppProvider>().addFarmingSession(session);
-                    Navigator.of(dialogCtx).pop();
+                    await context.read<AppProvider>().addFarmingSession(session);
+                    if (dialogCtx.mounted) {
+                      Navigator.of(dialogCtx).pop();
+                    }
+                    if (mounted) {
+                      _tabController.animateTo(0);
+                    }
                   },
                   child: const Text('Lưu Ca Up'),
                 ),
@@ -703,6 +726,7 @@ class FarmingView extends StatelessWidget {
   }
 
   void _showAddUsageDialog(BuildContext context, AppProvider provider) {
+    final messenger = ScaffoldMessenger.of(context);
     final packController = TextEditingController(text: '0');
     final looseController = TextEditingController(text: '0');
     final purposeController = TextEditingController(text: 'Mở Cải trang Dracula');
@@ -1040,7 +1064,7 @@ class FarmingView extends StatelessWidget {
                     backgroundColor: Colors.purpleAccent,
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     if (totalWanted <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Vui lòng nhập số gói x999 hoặc số viên lẻ lớn hơn 0!')),
@@ -1059,12 +1083,21 @@ class FarmingView extends StatelessWidget {
                       note: noteController.text.trim(),
                     );
 
-                    provider.addCskbUsage(usage);
-                    Navigator.of(dialogCtx).pop();
+                    await provider.addCskbUsage(usage);
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Đã xuất dùng thành công ${CurrencyFormatter.formatNumber(totalWanted)} viên CSKB!')),
-                    );
+                    if (dialogCtx.mounted) {
+                      Navigator.of(dialogCtx).pop();
+                    }
+
+                    if (mounted) {
+                      _tabController.animateTo(1);
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Đã xuất dùng thành công ${CurrencyFormatter.formatNumber(totalWanted)} viên CSKB và lưu vào lịch sử!'),
+                          backgroundColor: Colors.purple,
+                        ),
+                      );
+                    }
                   },
                   icon: const Icon(Icons.check, size: 18),
                   label: const Text('Xác Nhận Xuất Dùng'),

@@ -116,8 +116,24 @@ class DatabaseService {
   }
 
   // =================== XUẤT DÙNG CSKB CÁ NHÂN (USAGE) ===================
+  static Future<void> _ensureCskbUsagesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS cskb_usages (
+        id TEXT PRIMARY KEY,
+        pack_count INTEGER NOT NULL DEFAULT 0,
+        loose_count INTEGER NOT NULL DEFAULT 0,
+        purpose TEXT NOT NULL,
+        character_name TEXT,
+        server TEXT NOT NULL DEFAULT 'Vũ trụ 1',
+        created_at TEXT NOT NULL,
+        note TEXT
+      )
+    ''');
+  }
+
   Future<void> insertCskbUsage(CskbUsage usage) async {
     final db = await _dbProvider.database;
+    await _ensureCskbUsagesTable(db);
     await db.insert(
       'cskb_usages',
       usage.toMap(),
@@ -127,6 +143,7 @@ class DatabaseService {
 
   Future<List<CskbUsage>> getAllCskbUsages() async {
     final db = await _dbProvider.database;
+    await _ensureCskbUsagesTable(db);
     final result = await db.query(
       'cskb_usages',
       orderBy: 'created_at DESC',
@@ -136,6 +153,7 @@ class DatabaseService {
 
   Future<void> deleteCskbUsage(String id) async {
     final db = await _dbProvider.database;
+    await _ensureCskbUsagesTable(db);
     await db.delete('cskb_usages', where: 'id = ?', whereArgs: [id]);
   }
 

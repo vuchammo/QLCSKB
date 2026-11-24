@@ -177,7 +177,19 @@ class AppProvider extends ChangeNotifier {
       _detectorPurchases = await _supabase.fetchDetectorPurchases(_currentTeamCode!);
       _farmingSessions = await _supabase.fetchFarmingSessions(_currentTeamCode!);
       _cskbSales = await _supabase.fetchCskbSales(_currentTeamCode!);
-      _cskbUsages = await _supabase.fetchCskbUsages(_currentTeamCode!);
+
+      final cloudUsages = await _supabase.fetchCskbUsages(_currentTeamCode!);
+      final localUsages = await _dbService.getAllCskbUsages();
+      if (cloudUsages.isNotEmpty) {
+        final Map<String, CskbUsage> map = {
+          for (var u in localUsages) u.id: u,
+          for (var u in cloudUsages) u.id: u,
+        };
+        _cskbUsages = map.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      } else {
+        _cskbUsages = localUsages;
+      }
+
       _otherExpenses = await _supabase.fetchOtherExpenses(_currentTeamCode!);
       _teamMembers = await _supabase.getTeamMembers(_currentTeamCode!);
 
@@ -353,27 +365,42 @@ class AppProvider extends ChangeNotifier {
 
   // =================== XUẤT DÙNG CSKB CHO CÁ NHÂN ===================
   Future<void> addCskbUsage(CskbUsage usage) async {
+    // Luôn lưu trữ SQLite offline trước
     await _dbService.insertCskbUsage(usage);
-
-    if (isOnlineMode) {
-      await _supabase.insertCskbUsage(usage, _currentTeamCode!, _memberName);
-      await _refreshOnlineTeamData();
-    } else {
-      _cskbUsages = await _dbService.getAllCskbUsages();
-    }
+    _cskbUsages = await _dbService.getAllCskbUsages();
     notifyListeners();
+
+    // Nếu đang ở chế độ nhóm Online, đồng bộ lên Cloud
+    if (isOnlineMode) {
+      try {
+        await _supabase.insertCskbUsage(usage, _currentTeamCode!, _memberName);
+        final cloudUsages = await _supabase.fetchCskbUsages(_currentTeamCode!);
+        if (cloudUsages.isNotEmpty) {
+          final Map<String, CskbUsage> map = {
+            for (var u in _cskbUsages) u.id: u,
+            for (var u in cloudUsages) u.id: u,
+          };
+          _cskbUsages = map.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          notifyListeners();
+        }
+      } catch (e) {
+        debugPrint('Lỗi insertCskbUsage online: $e');
+      }
+    }
   }
 
   Future<void> deleteCskbUsage(String id) async {
     await _dbService.deleteCskbUsage(id);
+    _cskbUsages.removeWhere((u) => u.id == id);
+    notifyListeners();
 
     if (isOnlineMode) {
-      await _supabase.deleteCskbUsage(id);
-      await _refreshOnlineTeamData();
-    } else {
-      _cskbUsages = await _dbService.getAllCskbUsages();
+      try {
+        await _supabase.deleteCskbUsage(id);
+      } catch (e) {
+        debugPrint('Lỗi deleteCskbUsage online: $e');
+      }
     }
-    notifyListeners();
   }
 
   // =================== CHI PHÍ KHÁC ===================
