@@ -1,8 +1,8 @@
 -- ==============================================================================
--- SCRIPT KHỞI TẠO CƠ SỞ DỮ LIỆU SUPABASE (POSTGRESQL REALTIME)
+-- SCRIPT KHỞI TẠO CƠ SỞ DỮ LIỆU SUPABASE (POSTGRESQL REALTIME) - BẢN TỐI ƯU
 -- ỨNG DỤNG: QUẢN LÝ UP CSKB (CAPSULE KÌ BÍ) - NGỌC RỒNG ONLINE
 -- ==============================================================================
--- Hướng dẫn: Mở Supabase Dashboard -> Chọn dự án -> SQL Editor -> Dán toàn bộ script này và bấm RUN.
+-- Lưu ý: Script này có thể chạy nhiều lần mà KHÔNG BAO GIỜ bị báo lỗi trùng lặp (Idempotent).
 
 -- 1. BẢNG NHÓM (TEAMS)
 CREATE TABLE IF NOT EXISTS public.teams (
@@ -87,19 +87,44 @@ CREATE TABLE IF NOT EXISTS public.team_settings (
 );
 
 -- ==============================================================================
--- BẬT REALTIME REPLICATION (ĐỒNG BỘ TỨC THÌ ĐA THIẾT BỊ QUA WEBSOCKET)
+-- CẤP QUYỀN TRUY CẬP CHO ANON VÀ AUTHENTICATED
 -- ==============================================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE public.teams;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.team_members;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.detector_purchases;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.farming_sessions;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.cskb_sales;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.other_expenses;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.team_settings;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+
+-- ==============================================================================
+-- BẬT REALTIME REPLICATION AN TOÀN (CHỈ THÊM NẾU CHƯA CÓ TRONG PUBLICATION)
+-- ==============================================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'teams') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.teams;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'team_members') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.team_members;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'detector_purchases') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.detector_purchases;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'farming_sessions') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.farming_sessions;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'cskb_sales') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.cskb_sales;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'other_expenses') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.other_expenses;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'team_settings') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.team_settings;
+  END IF;
+END $$;
 
 -- ==============================================================================
 -- PHÂN QUYỀN TRUY CẬP (ROW LEVEL SECURITY - RLS)
--- Cho phép đọc/ghi công khai dựa trên mã Team Code
+-- Cho phép đọc/ghi dựa trên mã Team Code
 -- ==============================================================================
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
@@ -109,12 +134,25 @@ ALTER TABLE public.cskb_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.other_expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Cho phép truy cập teams" ON public.teams;
 CREATE POLICY "Cho phép truy cập teams" ON public.teams FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép truy cập team_members" ON public.team_members;
 CREATE POLICY "Cho phép truy cập team_members" ON public.team_members FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép truy cập detector_purchases" ON public.detector_purchases;
 CREATE POLICY "Cho phép truy cập detector_purchases" ON public.detector_purchases FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép truy cập farming_sessions" ON public.farming_sessions;
 CREATE POLICY "Cho phép truy cập farming_sessions" ON public.farming_sessions FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép truy cập cskb_sales" ON public.cskb_sales;
 CREATE POLICY "Cho phép truy cập cskb_sales" ON public.cskb_sales FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép truy cập other_expenses" ON public.other_expenses;
 CREATE POLICY "Cho phép truy cập other_expenses" ON public.other_expenses FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép truy cập team_settings" ON public.team_settings;
 CREATE POLICY "Cho phép truy cập team_settings" ON public.team_settings FOR ALL USING (true) WITH CHECK (true);
 
 -- TẠO NHÓM MẪU BAN ĐẦU ĐỂ TEST

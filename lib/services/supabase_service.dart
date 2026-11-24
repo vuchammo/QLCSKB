@@ -7,6 +7,15 @@ import '../models/farming_session.dart';
 import '../models/cskb_sale.dart';
 import '../models/other_expense.dart';
 
+class CloudResponse<T> {
+  final bool success;
+  final T? data;
+  final String? errorMessage;
+
+  CloudResponse.success(this.data) : success = true, errorMessage = null;
+  CloudResponse.failure(this.errorMessage) : success = false, data = null;
+}
+
 class SupabaseService {
   static final SupabaseService instance = SupabaseService._init();
   SupabaseService._init();
@@ -18,30 +27,46 @@ class SupabaseService {
 
   RealtimeChannel? _teamChannel;
 
-  /// Khởi tạo kết nối Supabase
-  Future<bool> initialize({required String url, required String anonKey}) async {
+  /// Khởi tạo kết nối Supabase và kiểm tra bảng CSDL
+  Future<CloudResponse<bool>> initialize({required String url, required String anonKey}) async {
     try {
-      if (url.trim().isEmpty || anonKey.trim().isEmpty) return false;
-
-      if (_isInitialized) {
-        // Nếu đã khởi tạo rồi, kiểm tra xem có thay đổi URL không
-        if (Supabase.instance.client.rest.url.toString().contains(url.trim())) {
-          return true;
-        }
+      if (url.trim().isEmpty || anonKey.trim().isEmpty) {
+        return CloudResponse.failure('URL hoặc Anon Key không được để trống!');
       }
 
-      await Supabase.initialize(
-        url: url.trim(),
-        anonKey: anonKey.trim(),
-        realtimeClientOptions: const RealtimeClientOptions(
-          eventsPerSecond: 10,
-        ),
-      );
-      _isInitialized = true;
-      return true;
+      final cleanUrl = url.trim();
+      final cleanKey = anonKey.trim();
+
+      if (!_isInitialized || !Supabase.instance.client.rest.url.toString().contains(cleanUrl)) {
+        await Supabase.initialize(
+          url: cleanUrl,
+          anonKey: cleanKey,
+          realtimeClientOptions: const RealtimeClientOptions(
+            eventsPerSecond: 10,
+          ),
+        );
+        _isInitialized = true;
+      }
+
+      // THỬ TRUY VẤN THỰC TẾ ĐỂ KIỂM TRA BẢNG CSDL TRÊN SUPABASE
+      try {
+        await client!.from('teams').select('code').limit(1);
+        return CloudResponse.success(true);
+      } on PostgrestException catch (pe) {
+        debugPrint('Supabase PostgrestException lúc test: ${pe.message} (${pe.code})');
+        if (pe.code == '42P01' || pe.message.contains('does not exist')) {
+          return CloudResponse.failure(
+            'Kết nối tới Supabase thành công nhưng CSDL chưa có bảng "teams"!\n'
+            '👉 Bạn cần vào mục "SQL Editor" trên Supabase, dán toàn bộ nội dung file "supabase_schema.sql" và bấm RUN.',
+          );
+        }
+        return CloudResponse.failure('Lỗi phản hồi từ Supabase: ${pe.message} (Mã lỗi: ${pe.code})');
+      } catch (err) {
+        return CloudResponse.failure('Lỗi kiểm tra bảng CSDL Supabase: $err');
+      }
     } catch (e) {
       debugPrint('Lỗi khởi tạo Supabase: $e');
-      return false;
+      return CloudResponse.failure('Không thể khởi tạo kết nối Supabase: $e');
     }
   }
 
@@ -68,8 +93,10 @@ class SupabaseService {
   }
 
   /// Tạo đội nhóm mới
-  Future<Team?> createTeam(String teamName, String ownerName) async {
-    if (!_isInitialized) return null;
+  Future<CloudResponse<Team>> createTeam(String teamName, String ownerName) async {
+    if (!_isInitialized) {
+      return CloudResponse.failure('Chưa kết nối Supabase! Vui lòng lưu thông tin tại Tab 3 trước.');
+    }
     try {
       final randomNum = Random().nextInt(9000) + 1000;
       final code = 'CSKB-$randomNum';
@@ -84,26 +111,43 @@ class SupabaseService {
       final newTeam = Team.fromMap(res);
 
       // Thêm người tạo vào danh sách thành viên với quyền OWNER
-      await client!.from('team_members').upsert({
-        'team_code': code,
-        'member_name': ownerName.trim(),
-        'role': 'OWNER',
-        'last_active': DateTime.now().toIso8601String(),
-      }, onConflict: 'team_code, member_name');
+      try {
+        await client!.from('team_members').upsert({
+          'team_code': code,
+          'member_name': ownerName.trim(),
+          'role': 'OWNER',
+          'last_active': DateTime.now().toIso8601String(),
+        }, onConflict: 'team_code, member_name');
+      } catch (memberErr) {
+        debugPrint('Cảnh báo lưu team_members: $memberErr');
+      }
 
-      return newTeam;
+      return CloudResponse.success(newTeam);
+    } on PostgrestException catch (e) {
+      debugPrint('PostgrestException tạo team: ${e.message} (code: ${e.code}, details: ${e.details})');
+      if (e.code == '42P01' || e.message.contains('does not exist')) {
+        return CloudResponse.failure(
+          'Chưa tạo bảng CSDL trên Supabase!\n'
+          '👉 Vui lòng vào Supabase Dashboard -> SQL Editor -> Dán nội dung file supabase_schema.sql và bấm RUN.',
+        );
+      }
+      return CloudResponse.failure('Lỗi Supabase: ${e.message} (Mã: ${e.code})');
     } catch (e) {
       debugPrint('Lỗi tạo nhóm: $e');
-      return null;
+      return CloudResponse.failure('Lỗi không xác định khi tạo nhóm: $e');
     }
   }
 
   /// Tham gia vào nhóm đã có
-  Future<bool> joinTeam(String code, String memberName, {String role = 'MEMBER'}) async {
-    if (!_isInitialized) return false;
+  Future<CloudResponse<bool>> joinTeam(String code, String memberName, {String role = 'MEMBER'}) async {
+    if (!_isInitialized) {
+      return CloudResponse.failure('Chưa kết nối Supabase! Vui lòng lưu thông tin tại Tab 3 trước.');
+    }
     try {
       final team = await getTeam(code);
-      if (team == null) return false;
+      if (team == null) {
+        return CloudResponse.failure('Không tìm thấy nhóm có mã "${code.toUpperCase()}" trên máy chủ!');
+      }
 
       await client!.from('team_members').upsert({
         'team_code': team.code,
@@ -112,10 +156,13 @@ class SupabaseService {
         'last_active': DateTime.now().toIso8601String(),
       }, onConflict: 'team_code, member_name');
 
-      return true;
+      return CloudResponse.success(true);
+    } on PostgrestException catch (e) {
+      debugPrint('PostgrestException tham gia team: ${e.message}');
+      return CloudResponse.failure('Lỗi Supabase: ${e.message}');
     } catch (e) {
       debugPrint('Lỗi tham gia nhóm: $e');
-      return false;
+      return CloudResponse.failure('Lỗi tham gia nhóm: $e');
     }
   }
 

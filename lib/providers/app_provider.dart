@@ -137,9 +137,9 @@ class AppProvider extends ChangeNotifier {
 
       // 2. Nếu có cấu hình Supabase và đang ở chế độ nhóm
       if (_supabaseUrl.isNotEmpty && _supabaseAnonKey.isNotEmpty) {
-        final initialized = await _supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
+        final initRes = await _supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
 
-        if (initialized && _currentTeamCode != null && _currentTeamCode!.isNotEmpty) {
+        if (initRes.success && _currentTeamCode != null && _currentTeamCode!.isNotEmpty) {
           await _refreshOnlineTeamData();
           _setupRealtimeSync();
           _isLoading = false;
@@ -195,22 +195,22 @@ class AppProvider extends ChangeNotifier {
 
   // =================== QUẢN LÝ ĐỘI NHÓM & CLOUD ===================
 
-  Future<bool> connectSupabase(String url, String anonKey) async {
-    final success = await _supabase.initialize(url: url, anonKey: anonKey);
-    if (success) {
+  Future<CloudResponse<bool>> connectSupabase(String url, String anonKey) async {
+    final response = await _supabase.initialize(url: url, anonKey: anonKey);
+    if (response.success) {
       _supabaseUrl = url;
       _supabaseAnonKey = anonKey;
       await _dbService.setSetting(AppConstants.settingSupabaseUrl, url);
       await _dbService.setSetting(AppConstants.settingSupabaseAnonKey, anonKey);
       notifyListeners();
     }
-    return success;
+    return response;
   }
 
-  Future<Team?> createTeamOnline(String teamName, String ownerName) async {
-    if (!_supabase.isInitialized) return null;
-    final team = await _supabase.createTeam(teamName, ownerName);
-    if (team != null) {
+  Future<CloudResponse<Team>> createTeamOnline(String teamName, String ownerName) async {
+    final response = await _supabase.createTeam(teamName, ownerName);
+    if (response.success && response.data != null) {
+      final team = response.data!;
       _currentTeamCode = team.code;
       _currentTeamName = team.name;
       _memberName = ownerName;
@@ -223,13 +223,12 @@ class AppProvider extends ChangeNotifier {
       _setupRealtimeSync();
       notifyListeners();
     }
-    return team;
+    return response;
   }
 
-  Future<bool> joinTeamOnline(String teamCode, String memberName, {String role = 'MEMBER'}) async {
-    if (!_supabase.isInitialized) return false;
-    final success = await _supabase.joinTeam(teamCode, memberName, role: role);
-    if (success) {
+  Future<CloudResponse<bool>> joinTeamOnline(String teamCode, String memberName, {String role = 'MEMBER'}) async {
+    final response = await _supabase.joinTeam(teamCode, memberName, role: role);
+    if (response.success) {
       final team = await _supabase.getTeam(teamCode);
       _currentTeamCode = team?.code ?? teamCode;
       _currentTeamName = team?.name ?? 'Nhóm $teamCode';
@@ -242,9 +241,8 @@ class AppProvider extends ChangeNotifier {
       await _refreshOnlineTeamData();
       _setupRealtimeSync();
       notifyListeners();
-      return true;
     }
-    return false;
+    return response;
   }
 
   Future<void> leaveTeamOnline() async {

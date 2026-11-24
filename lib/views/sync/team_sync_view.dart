@@ -52,6 +52,71 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
     super.dispose();
   }
 
+  void _showErrorDialog(BuildContext context, String title, String message) {
+    final isTableMissing = message.contains('teams') || message.contains('CSDL chưa có bảng') || message.contains('42P01');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppTheme.dangerRed, size: 24),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 18))),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message,
+                style: const TextStyle(height: 1.5, fontSize: 14),
+              ),
+              if (isTableMissing) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGold.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.primaryGold),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '💡 HƯỚNG DẪN KHẮC PHỤC:',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryGold, fontSize: 12),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        '1. Mở Supabase Dashboard (https://supabase.com/dashboard).\n'
+                        '2. Chọn dự án của bạn -> Bấm vào mục "SQL Editor" ở menu bên trái.\n'
+                        '3. Mở file "supabase_schema.sql" trong thư mục ứng dụng QLCSKB, copy toàn bộ nội dung và dán vào SQL Editor.\n'
+                        '4. Bấm nút xanh "RUN" ở góc phải để tạo bảng.\n'
+                        '5. Quay lại app và bấm Tạo Nhóm Mới là thành công!',
+                        style: TextStyle(fontSize: 12, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
@@ -383,7 +448,7 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
             ),
             const SizedBox(height: 24),
             SizedBox(
-              height: 400,
+              height: 440,
               child: TabBarView(
                 controller: _tabController,
                 children: [
@@ -449,20 +514,16 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
                     }
 
                     setState(() => _isActionLoading = true);
-                    final success = await provider.joinTeamOnline(code, name);
+                    final res = await provider.joinTeamOnline(code, name);
                     setState(() => _isActionLoading = false);
 
                     if (context.mounted) {
-                      if (success) {
+                      if (res.success) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Đã tham gia nhóm $code thành công! Dữ liệu đã đồng bộ.')),
                         );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Không tìm thấy mã nhóm này hoặc chưa kết nối Supabase! Vui lòng kiểm tra lại Tab 3.'),
-                          ),
-                        );
+                        _showErrorDialog(context, 'Không Thể Tham Gia Nhóm', res.errorMessage ?? 'Chưa rõ nguyên nhân');
                       }
                     }
                   },
@@ -525,20 +586,16 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
                     }
 
                     setState(() => _isActionLoading = true);
-                    final newTeam = await provider.createTeamOnline(teamName, ownerName);
+                    final res = await provider.createTeamOnline(teamName, ownerName);
                     setState(() => _isActionLoading = false);
 
                     if (context.mounted) {
-                      if (newTeam != null) {
+                      if (res.success && res.data != null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Đã tạo thành công nhóm ${newTeam.name}! Mã nhóm: ${newTeam.code}')),
+                          SnackBar(content: Text('Đã tạo thành công nhóm ${res.data!.name}! Mã nhóm: ${res.data!.code}')),
                         );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Chưa thể tạo nhóm! Hãy đảm bảo bạn đã cấu hình kết nối Supabase ở Tab 3.'),
-                          ),
-                        );
+                        _showErrorDialog(context, 'Không Thể Tạo Nhóm', res.errorMessage ?? 'Chưa rõ nguyên nhân');
                       }
                     }
                   },
@@ -590,36 +647,40 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
           Row(
             children: [
               ElevatedButton.icon(
-                onPressed: () async {
-                  final url = _supabaseUrlController.text.trim();
-                  final key = _supabaseKeyController.text.trim();
-                  if (url.isEmpty || key.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Vui lòng nhập đầy đủ Supabase URL và Anon Key!')),
-                    );
-                    return;
-                  }
+                onPressed: _isActionLoading
+                    ? null
+                    : () async {
+                        final url = _supabaseUrlController.text.trim();
+                        final key = _supabaseKeyController.text.trim();
+                        if (url.isEmpty || key.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Vui lòng nhập đầy đủ Supabase URL và Anon Key!')),
+                          );
+                          return;
+                        }
 
-                  final success = await provider.connectSupabase(url, key);
-                  if (context.mounted) {
-                    if (success) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đã kết nối thành công với máy chủ Supabase Cloud!')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Kết nối thất bại! Vui lòng kiểm tra lại URL hoặc Key.')),
-                      );
-                    }
-                  }
-                },
-                icon: const Icon(Icons.save),
-                label: const Text('Lưu & Kết Nối Máy Chủ'),
+                        setState(() => _isActionLoading = true);
+                        final res = await provider.connectSupabase(url, key);
+                        setState(() => _isActionLoading = false);
+
+                        if (context.mounted) {
+                          if (res.success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('✅ Kết nối thành công! CSDL Supabase và các bảng đã sẵn sàng.')),
+                            );
+                          } else {
+                            _showErrorDialog(context, 'Kết Nối Supabase Thất Bại', res.errorMessage ?? 'Không thể kết nối');
+                          }
+                        }
+                      },
+                icon: _isActionLoading
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    : const Icon(Icons.save),
+                label: const Text('Lưu & Kiểm Tra Kết Nối'),
               ),
               const SizedBox(width: 12),
               OutlinedButton.icon(
                 onPressed: () {
-                  // Hướng dẫn mở supabase_schema.sql
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
