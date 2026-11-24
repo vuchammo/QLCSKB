@@ -1,0 +1,46 @@
+name: Build macOS Desktop App
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run Unit Tests
+        run: flutter test
+
+      - name: Enable macOS Desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Build macOS App
+        run: flutter build macos --release
+
+      - name: Archive macOS App
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../QLCSKB_macOS.zip qlcskb.app
+
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QLCSKB-macOS-Release
+          path: QLCSKB_macOS.zip
