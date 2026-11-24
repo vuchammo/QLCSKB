@@ -73,14 +73,16 @@ class DashboardView extends StatelessWidget {
             // Lưới Thẻ Thống Kê (KPI Cards)
             LayoutBuilder(
               builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth > 1100 ? 4 : (constraints.maxWidth > 750 ? 2 : 1);
-                return GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                final crossAxisCount = constraints.maxWidth > 1100 ? 4 : (constraints.maxWidth > 700 ? 2 : 1);
+                return GridView(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    mainAxisExtent: 125,
+                  ),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.8,
                   children: [
                     // Tồn kho CSKB
                     StatCard(
@@ -129,14 +131,16 @@ class DashboardView extends StatelessWidget {
             // Dòng thứ hai của KPI (Tài chính mở rộng)
             LayoutBuilder(
               builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth > 1100 ? 3 : 1;
-                return GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                final crossAxisCount = constraints.maxWidth > 1100 ? 3 : (constraints.maxWidth > 700 ? 2 : 1);
+                return GridView(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    mainAxisExtent: 125,
+                  ),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 2.2,
                   children: [
                     StatCard(
                       title: 'TỔNG DOANH THU BÁN CSKB',
@@ -167,205 +171,222 @@ class DashboardView extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Hai cột: Ca Up Gần Đây & Đơn Bán Gần Đây
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Ca up gần đây
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.history, color: AppTheme.kiCyan, size: 18),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Ca Up Gần Đây',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                '${provider.farmingSessions.length} ca',
-                                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 24, color: AppTheme.borderDark),
-                          if (provider.farmingSessions.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(
-                                child: Text('Chưa có ca up nào được ghi nhận.', style: TextStyle(color: Colors.grey)),
-                              ),
-                            )
-                          else
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: provider.farmingSessions.take(5).length,
-                              separatorBuilder: (_, __) => const Divider(height: 16, color: AppTheme.borderDark),
-                              itemBuilder: (context, index) {
-                                final s = provider.farmingSessions[index];
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '+${CurrencyFormatter.formatNumber(s.cskbCollected)} CSKB',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.primaryGold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          DateFormatter.formatFull(s.createdAt),
-                                          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                                        ),
-                                      ],
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'Dùng ${s.detectorsUsed} máy dò',
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.kiCyan.withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            '${s.dropRate.toStringAsFixed(1)} viên/máy',
-                                            style: const TextStyle(fontSize: 10, color: AppTheme.kiCyan, fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 800;
+                final sessionsCard = _buildRecentSessionsCard(context, provider);
+                final salesCard = _buildRecentSalesCard(context, provider);
 
-                // Đơn bán gần đây
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
+                return isWide
+                    ? Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(Icons.sell_outlined, color: AppTheme.successGreen, size: 18),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Đơn Bán Gần Đây',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                '${provider.cskbSales.length} đơn',
-                                style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 24, color: AppTheme.borderDark),
-                          if (provider.cskbSales.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
-                              child: Center(
-                                child: Text('Chưa có đơn bán nào.', style: TextStyle(color: Colors.grey)),
-                              ),
-                            )
-                          else
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: provider.cskbSales.take(5).length,
-                              separatorBuilder: (_, __) => const Divider(height: 16, color: AppTheme.borderDark),
-                              itemBuilder: (context, index) {
-                                final sale = provider.cskbSales[index];
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Bán ${sale.packCount} gói x999${sale.looseCount > 0 ? " + ${sale.looseCount} lẻ" : ""}',
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${sale.customerName.isNotEmpty ? "${sale.customerName} • " : ""}${DateFormatter.formatFull(sale.createdAt)}',
-                                          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                                        ),
-                                      ],
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          CurrencyFormatter.format(sale.totalRevenue, currency: sale.currency),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.successGreen,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: sale.isPaid
-                                                ? AppTheme.successGreen.withOpacity(0.15)
-                                                : AppTheme.dangerRed.withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            sale.isPaid ? 'ĐÃ THU' : 'GHI NỢ',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: sale.isPaid ? AppTheme.successGreen : AppTheme.dangerRed,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
+                          Expanded(child: sessionsCard),
+                          const SizedBox(width: 16),
+                          Expanded(child: salesCard),
                         ],
-                      ),
+                      )
+                    : Column(
+                        children: [
+                          sessionsCard,
+                          const SizedBox(height: 16),
+                          salesCard,
+                        ],
+                      );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentSessionsCard(BuildContext context, AppProvider provider) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.history, color: AppTheme.kiCyan, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Ca Up Gần Đây',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                  ),
+                  ],
+                ),
+                Text(
+                  '${provider.farmingSessions.length} ca',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
                 ),
               ],
             ),
+            const Divider(height: 24, color: AppTheme.borderDark),
+            if (provider.farmingSessions.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text('Chưa có ca up nào được ghi nhận.', style: TextStyle(color: Colors.grey)),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: provider.farmingSessions.take(5).length,
+                separatorBuilder: (_, __) => const Divider(height: 16, color: AppTheme.borderDark),
+                itemBuilder: (context, index) {
+                  final s = provider.farmingSessions[index];
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '+${CurrencyFormatter.formatNumber(s.cskbCollected)} CSKB',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryGold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormatter.formatFull(s.createdAt),
+                            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Dùng ${s.detectorsUsed} máy dò',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.kiCyan.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '${s.dropRate.toStringAsFixed(1)} viên/máy',
+                              style: const TextStyle(fontSize: 10, color: AppTheme.kiCyan, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentSalesCard(BuildContext context, AppProvider provider) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.sell_outlined, color: AppTheme.successGreen, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Đơn Bán Gần Đây',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${provider.cskbSales.length} đơn',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+              ],
+            ),
+            const Divider(height: 24, color: AppTheme.borderDark),
+            if (provider.cskbSales.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text('Chưa có đơn bán nào.', style: TextStyle(color: Colors.grey)),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: provider.cskbSales.take(5).length,
+                separatorBuilder: (_, __) => const Divider(height: 16, color: AppTheme.borderDark),
+                itemBuilder: (context, index) {
+                  final sale = provider.cskbSales[index];
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bán ${sale.packCount} gói x999${sale.looseCount > 0 ? " + ${sale.looseCount} lẻ" : ""}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${sale.customerName.isNotEmpty ? "${sale.customerName} • " : ""}${DateFormatter.formatFull(sale.createdAt)}',
+                            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            CurrencyFormatter.format(sale.totalRevenue, currency: sale.currency),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.successGreen,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: sale.isPaid
+                                  ? AppTheme.successGreen.withOpacity(0.15)
+                                  : AppTheme.dangerRed.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              sale.isPaid ? 'ĐÃ THU' : 'GHI NỢ',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: sale.isPaid ? AppTheme.successGreen : AppTheme.dangerRed,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
           ],
         ),
       ),

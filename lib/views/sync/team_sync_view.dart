@@ -131,24 +131,27 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Đồng Bộ Trực Tuyến & Quản Lý Đội Nhóm',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Đồng Bộ Trực Tuyến & Quản Lý Đội Nhóm',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Chia sẻ kho CSKB, máy dò và doanh thu bán hàng real-time giữa các thành viên',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Chia sẻ kho CSKB, máy dò và doanh thu bán hàng real-time giữa các thành viên',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
@@ -226,33 +229,40 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppTheme.successGreen.withOpacity(0.2),
-                            shape: BoxShape.circle,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.successGreen.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.cloud_done, color: AppTheme.successGreen, size: 28),
                           ),
-                          child: const Icon(Icons.cloud_done, color: AppTheme.successGreen, size: 28),
-                        ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              provider.currentTeamName ?? 'Đội nhóm',
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  provider.currentTeamName ?? 'Đội nhóm',
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Đang đồng bộ tự động với máy chủ Cloud • Realtime WebSockets',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Đang đồng bộ tự động với máy chủ Cloud • Realtime WebSockets',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[400]),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.dangerRed.withOpacity(0.2),
@@ -644,7 +654,9 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
           ),
           const SizedBox(height: 20),
 
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
             children: [
               ElevatedButton.icon(
                 onPressed: _isActionLoading
@@ -678,7 +690,6 @@ class _TeamSyncViewState extends State<TeamSyncView> with SingleTickerProviderSt
                     : const Icon(Icons.save),
                 label: const Text('Lưu & Kiểm Tra Kết Nối'),
               ),
-              const SizedBox(width: 12),
               OutlinedButton.icon(
                 onPressed: () {
                   showDialog(

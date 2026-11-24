@@ -72,209 +72,228 @@ class _CalculatorViewState extends State<CalculatorView> {
             ),
             const SizedBox(height: 24),
 
-            // Lưới 2 cột cho các công cụ tính
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // CỘT 1: Quy đổi Viên CSKB -> Gói x999 & Thành tiền
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
+            // Lưới các công cụ tính toán (Tự co giãn 1 cột hoặc 2 cột theo độ rộng màn hình)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth > 800;
+
+                final card1 = Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.calculate, color: AppTheme.primaryOrange, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Quy Đổi Viên Lẻ Sang Gói x999',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24, color: AppTheme.borderDark),
+
+                        const Text('Nhập tổng số viên CSKB:', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _cskbInputController,
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Ví dụ: 2500',
+                            suffixText: 'viên',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        const Text('Giá bán 1 gói x999 CSKB (VND):', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _packPriceController,
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => setState(() {}),
+                          decoration: const InputDecoration(
+                            hintText: 'Ví dụ: 40000',
+                            suffixText: 'đ / gói',
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Kết quả
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppTheme.bgDark,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.primaryGold.withOpacity(0.5)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.calculate, color: AppTheme.primaryOrange, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Quy Đổi Viên Lẻ Sang Gói x999',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              const Text('KẾT QUẢ QUY ĐỔI:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  const Icon(Icons.inventory_2, color: AppTheme.primaryGold, size: 24),
+                                  Text(
+                                    '$packsCalculated gói x999',
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryGold),
+                                  ),
+                                  Text(
+                                    '+ $looseCalculated viên lẻ',
+                                    style: const TextStyle(fontSize: 16, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: 20, color: AppTheme.borderDark),
+                              Wrap(
+                                alignment: WrapAlignment.spaceBetween,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  const Text('Ước tính thành tiền:', style: TextStyle(fontWeight: FontWeight.w500)),
+                                  Text(
+                                    CurrencyFormatter.format(totalMoneyFromPacks),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.successGreen,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          const Divider(height: 24, color: AppTheme.borderDark),
-
-                          const Text('Nhập tổng số viên CSKB:', style: TextStyle(fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 6),
-                          TextField(
-                            controller: _cskbInputController,
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
-                            decoration: const InputDecoration(
-                              hintText: 'Ví dụ: 2500',
-                              suffixText: 'viên',
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          const Text('Giá bán 1 gói x999 CSKB (VND):', style: TextStyle(fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 6),
-                          TextField(
-                            controller: _packPriceController,
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => setState(() {}),
-                            decoration: const InputDecoration(
-                              hintText: 'Ví dụ: 40000',
-                              suffixText: 'đ / gói',
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Kết quả
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.bgDark,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.primaryGold.withOpacity(0.5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('KẾT QUẢ QUY ĐỔI:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.inventory_2, color: AppTheme.primaryGold, size: 24),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '$packsCalculated gói x999',
-                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryGold),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '+ $looseCalculated viên lẻ',
-                                      style: const TextStyle(fontSize: 16, color: Colors.white70),
-                                    ),
-                                  ],
-                                ),
-                                const Divider(height: 20, color: AppTheme.borderDark),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text('Ước tính thành tiền:', style: TextStyle(fontWeight: FontWeight.w500)),
-                                    Text(
-                                      CurrencyFormatter.format(totalMoneyFromPacks),
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.successGreen,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
+                );
 
-                // CỘT 2: Quy đổi Gói x999 -> Tổng viên CSKB
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
+                final card2 = Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.inventory, color: AppTheme.kiCyan, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Quy Đổi Số Gói x999 Sang Tổng Viên',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24, color: AppTheme.borderDark),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Số gói x999:', style: TextStyle(fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: _packInputController,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (_) => setState(() {}),
+                                    decoration: const InputDecoration(
+                                      hintText: '5',
+                                      suffixText: 'gói',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Viên lẻ kèm theo:', style: TextStyle(fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: _looseInputController,
+                                    keyboardType: TextInputType.number,
+                                    onChanged: (_) => setState(() {}),
+                                    decoration: const InputDecoration(
+                                      hintText: '0',
+                                      suffixText: 'viên',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Kết quả
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppTheme.bgDark,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.kiCyan.withOpacity(0.5)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.inventory, color: AppTheme.kiCyan, size: 20),
-                              SizedBox(width: 8),
+                              const Text('TỔNG SỐ LƯỢNG CSKB:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  const Icon(Icons.auto_awesome, color: AppTheme.kiCyan, size: 24),
+                                  Text(
+                                    '${CurrencyFormatter.formatNumber(totalCskbCalculated)} viên',
+                                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.kiCyan),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
                               Text(
-                                'Quy Đổi Số Gói x999 Sang Tổng Viên',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                '($inputPacks x 999 + $inputLoose viên = $totalCskbCalculated viên CSKB)',
+                                style: TextStyle(fontSize: 12, color: Colors.grey[400]),
                               ),
                             ],
                           ),
-                          const Divider(height: 24, color: AppTheme.borderDark),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Số gói x999:', style: TextStyle(fontWeight: FontWeight.w600)),
-                                    const SizedBox(height: 6),
-                                    TextField(
-                                      controller: _packInputController,
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                      decoration: const InputDecoration(
-                                        hintText: '5',
-                                        suffixText: 'gói',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Viên lẻ kèm theo:', style: TextStyle(fontWeight: FontWeight.w600)),
-                                    const SizedBox(height: 6),
-                                    TextField(
-                                      controller: _looseInputController,
-                                      keyboardType: TextInputType.number,
-                                      onChanged: (_) => setState(() {}),
-                                      decoration: const InputDecoration(
-                                        hintText: '0',
-                                        suffixText: 'viên',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Kết quả
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.bgDark,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.kiCyan.withOpacity(0.5)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('TỔNG SỐ LƯỢNG CSKB:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.auto_awesome, color: AppTheme.kiCyan, size: 24),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${CurrencyFormatter.formatNumber(totalCskbCalculated)} viên',
-                                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.kiCyan),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  '($inputPacks x 999 + $inputLoose viên = $totalCskbCalculated viên CSKB)',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey[400]),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                );
+
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: card1),
+                      const SizedBox(width: 16),
+                      Expanded(child: card2),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      card1,
+                      const SizedBox(height: 16),
+                      card2,
+                    ],
+                  );
+                }
+              },
             ),
 
             const SizedBox(height: 24),
@@ -286,93 +305,134 @@ class _CalculatorViewState extends State<CalculatorView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.currency_exchange, color: AppTheme.primaryGold, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              'Quy Đổi Tỷ Giá Thỏi Vàng (TV) & VND',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          'Tỷ giá hiện hành: 1 TV = ${CurrencyFormatter.formatNumber(exchangeRate)} đ',
-                          style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWideHeader = constraints.maxWidth > 550;
+                        if (isWideHeader) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.currency_exchange, color: AppTheme.primaryGold, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Quy Đổi Tỷ Giá Thỏi Vàng (TV) & VND',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                'Tỷ giá: 1 TV = ${CurrencyFormatter.formatNumber(exchangeRate)} đ',
+                                style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.currency_exchange, color: AppTheme.primaryGold, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Quy Đổi Tỷ Giá TV & VND',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Tỷ giá: 1 TV = ${CurrencyFormatter.formatNumber(exchangeRate)} đ',
+                                style: const TextStyle(color: AppTheme.primaryGold, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          );
+                        }
+                      },
                     ),
                     const Divider(height: 24, color: AppTheme.borderDark),
-                    Row(
-                      children: [
-                        // TV sang VND
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Đổi từ Thỏi Vàng sang VND:', style: TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 6),
-                              TextField(
-                                controller: _tvInputController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                onChanged: (_) => setState(() {}),
-                                decoration: const InputDecoration(
-                                  hintText: '100',
-                                  suffixText: 'Thỏi Vàng',
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.bgDark,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '= ${CurrencyFormatter.format(convertedVndFromTv)}',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.successGreen),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 24),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWideInputs = constraints.maxWidth > 600;
 
-                        // VND sang TV
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        final colTvToVnd = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Đổi từ Thỏi Vàng sang VND:', style: TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _tvInputController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => setState(() {}),
+                              decoration: const InputDecoration(
+                                hintText: '100',
+                                suffixText: 'Thỏi Vàng',
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.bgDark,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '= ${CurrencyFormatter.format(convertedVndFromTv)}',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.successGreen),
+                              ),
+                            ),
+                          ],
+                        );
+
+                        final colVndToTv = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Đổi từ VND sang Thỏi Vàng:', style: TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _vndInputController,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => setState(() {}),
+                              decoration: const InputDecoration(
+                                hintText: '35000',
+                                suffixText: 'VND',
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.bgDark,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '= ${CurrencyFormatter.formatDecimal(convertedTvFromVnd)} Thỏi Vàng',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryGold),
+                              ),
+                            ),
+                          ],
+                        );
+
+                        if (isWideInputs) {
+                          return Row(
                             children: [
-                              const Text('Đổi từ VND sang Thỏi Vàng:', style: TextStyle(fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 6),
-                              TextField(
-                                controller: _vndInputController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                onChanged: (_) => setState(() {}),
-                                decoration: const InputDecoration(
-                                  hintText: '35000',
-                                  suffixText: 'VND',
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.bgDark,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  '= ${CurrencyFormatter.formatDecimal(convertedTvFromVnd)} Thỏi Vàng',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryGold),
-                                ),
-                              ),
+                              Expanded(child: colTvToVnd),
+                              const SizedBox(width: 24),
+                              Expanded(child: colVndToTv),
                             ],
-                          ),
-                        ),
-                      ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              colTvToVnd,
+                              const SizedBox(height: 20),
+                              colVndToTv,
+                            ],
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),

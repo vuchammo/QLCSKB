@@ -80,13 +80,15 @@ class _SettingsViewState extends State<SettingsView> {
                       style: TextStyle(fontSize: 13, color: Colors.grey[400]),
                     ),
                     const Divider(height: 24, color: AppTheme.borderDark),
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 12,
                       children: [
                         const Text(
                           '1 Thỏi Vàng (TV) =',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(width: 16),
                         SizedBox(
                           width: 180,
                           child: TextField(
@@ -97,7 +99,6 @@ class _SettingsViewState extends State<SettingsView> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
                         ElevatedButton.icon(
                           onPressed: () {
                             final newRate = double.tryParse(_rateController.text.trim()) ?? 0.0;
@@ -161,38 +162,41 @@ class _SettingsViewState extends State<SettingsView> {
                         ),
                       )
                     else
-                      DataTable(
-                        columnSpacing: 28,
-                        columns: const [
-                          DataColumn(label: Text('Thời Gian', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Khoản Chi', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Số Tiền', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Ghi Chú', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Thao Tác', style: TextStyle(fontWeight: FontWeight.bold))),
-                        ],
-                        rows: provider.otherExpenses.map((exp) {
-                          return DataRow(
-                            cells: [
-                              DataCell(Text(DateFormatter.formatFull(exp.createdAt))),
-                              DataCell(Text(exp.title, style: const TextStyle(fontWeight: FontWeight.bold))),
-                              DataCell(
-                                Text(
-                                  CurrencyFormatter.format(exp.amount, currency: exp.currency),
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.dangerRed),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columnSpacing: 28,
+                          columns: const [
+                            DataColumn(label: Text('Thời Gian', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Khoản Chi', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Số Tiền', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Ghi Chú', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Thao Tác', style: TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                          rows: provider.otherExpenses.map((exp) {
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(DateFormatter.formatFull(exp.createdAt))),
+                                DataCell(Text(exp.title, style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataCell(
+                                  Text(
+                                    CurrencyFormatter.format(exp.amount, currency: exp.currency),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.dangerRed),
+                                  ),
                                 ),
-                              ),
-                              DataCell(Text(exp.note?.isNotEmpty == true ? exp.note! : '---')),
-                              DataCell(
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.dangerRed),
-                                  onPressed: () {
-                                    provider.deleteOtherExpense(exp.id);
-                                  },
+                                DataCell(Text(exp.note?.isNotEmpty == true ? exp.note! : '---')),
+                                DataCell(
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.dangerRed),
+                                    onPressed: () {
+                                      provider.deleteOtherExpense(exp.id);
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
+                              ],
+                            );
+                          }).toList(),
+                        ),
                       ),
                   ],
                 ),

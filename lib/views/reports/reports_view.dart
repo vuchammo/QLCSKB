@@ -112,31 +112,56 @@ class ReportsView extends StatelessWidget {
                       ],
                     ),
                     const Divider(height: 32, color: AppTheme.borderDark),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildSummaryItem(
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 650;
+                        final item1 = _buildSummaryItem(
                           'Tỷ Suất ROI',
                           '${summary.roiVnd.toStringAsFixed(1)}%',
                           summary.roiVnd >= 0 ? AppTheme.successGreen : AppTheme.dangerRed,
-                        ),
-                        _buildSummaryItem(
+                        );
+                        final item2 = _buildSummaryItem(
                           'CSKB Đã Bán',
                           '${summary.totalCskbSold ~/ AppConstants.packSize} gói x999',
                           AppTheme.primaryGold,
-                        ),
-                        _buildSummaryItem(
+                        );
+                        final item3 = _buildSummaryItem(
                           'Dòng Tiền Thực',
                           CurrencyFormatter.format(cashflowVnd),
                           cashflowVnd >= 0 ? AppTheme.kiCyan : AppTheme.dangerRed,
                           subtitle: CurrencyFormatter.format(cashflowTv, currency: AppConstants.currencyThoiVang),
-                        ),
-                        _buildSummaryItem(
+                        );
+                        final item4 = _buildSummaryItem(
                           'Tồn Kho Ước Tính',
                           CurrencyFormatter.format(summary.estimatedInventoryValueVnd),
                           Colors.purpleAccent,
-                        ),
-                      ],
+                        );
+
+                        if (isWide) {
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Expanded(child: item1),
+                              Expanded(child: item2),
+                              Expanded(child: item3),
+                              Expanded(child: item4),
+                            ],
+                          );
+                        } else {
+                          final halfWidth = (constraints.maxWidth - 24) / 2;
+                          return Wrap(
+                            alignment: WrapAlignment.spaceAround,
+                            runSpacing: 16,
+                            spacing: 16,
+                            children: [
+                              SizedBox(width: halfWidth, child: item1),
+                              SizedBox(width: halfWidth, child: item2),
+                              SizedBox(width: halfWidth, child: item3),
+                              SizedBox(width: halfWidth, child: item4),
+                            ],
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -242,32 +267,49 @@ class ReportsView extends StatelessWidget {
                       ],
                     ),
                     const Divider(height: 24, color: AppTheme.borderDark),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildMetricTile(
-                            'Tỉ lệ rơi trung bình',
-                            '${summary.averageDropRate.toStringAsFixed(1)} CSKB / máy',
-                            'Dùng ${summary.totalDetectorsUsed} máy dò -> nhặt ${CurrencyFormatter.formatNumber(summary.totalCskbCollected)} CSKB',
-                          ),
-                        ),
-                        Expanded(
-                          child: _buildMetricTile(
-                            'Máy dò cần để đóng 1 gói x999',
-                            summary.averageDropRate > 0
-                                ? '${(AppConstants.packSize / summary.averageDropRate).toStringAsFixed(1)} cái'
-                                : '0 cái',
-                            'Cần ~${summary.averageDropRate > 0 ? (AppConstants.packSize / summary.averageDropRate * 30 / 60).toStringAsFixed(1) : 0} giờ treo máy / gói',
-                          ),
-                        ),
-                        Expanded(
-                          child: _buildMetricTile(
-                            'CSKB còn tồn kho',
-                            '${CurrencyFormatter.formatNumber(summary.currentCskbStock)} viên',
-                            'Tương đương ${summary.stockPacks} gói x999 + ${summary.stockLoose} lẻ',
-                          ),
-                        ),
-                      ],
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth > 800;
+                        final tile1 = _buildMetricTile(
+                          'Tỉ lệ rơi trung bình',
+                          '${summary.averageDropRate.toStringAsFixed(1)} CSKB / máy',
+                          'Dùng ${summary.totalDetectorsUsed} máy dò -> nhặt ${CurrencyFormatter.formatNumber(summary.totalCskbCollected)} CSKB',
+                        );
+                        final tile2 = _buildMetricTile(
+                          'Máy dò cần để đóng 1 gói x999',
+                          summary.averageDropRate > 0
+                              ? '${(AppConstants.packSize / summary.averageDropRate).toStringAsFixed(1)} cái'
+                              : '0 cái',
+                          'Cần ~${summary.averageDropRate > 0 ? (AppConstants.packSize / summary.averageDropRate * 30 / 60).toStringAsFixed(1) : 0} giờ treo máy / gói',
+                        );
+                        final tile3 = _buildMetricTile(
+                          'CSKB còn tồn kho',
+                          '${CurrencyFormatter.formatNumber(summary.currentCskbStock)} viên',
+                          'Tương đương ${summary.stockPacks} gói x999 + ${summary.stockLoose} lẻ',
+                        );
+
+                        if (isWide) {
+                          return Row(
+                            children: [
+                              Expanded(child: tile1),
+                              const SizedBox(width: 12),
+                              Expanded(child: tile2),
+                              const SizedBox(width: 12),
+                              Expanded(child: tile3),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              tile1,
+                              const SizedBox(height: 10),
+                              tile2,
+                              const SizedBox(height: 10),
+                              tile3,
+                            ],
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -333,6 +375,7 @@ class ReportsView extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -358,7 +401,7 @@ class ReportsView extends StatelessWidget {
 
   Widget _buildMetricTile(String title, String value, String subtitle) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6),
+      width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppTheme.bgDark,

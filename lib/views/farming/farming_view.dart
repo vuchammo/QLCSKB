@@ -25,24 +25,27 @@ class FarmingView extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Kho CSKB & Ca Treo Up',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Kho CSKB & Ca Treo Up',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Theo dõi tổng lượng Capsule Kì Bí hiện có, quy đổi gói x999 và hiệu suất ca up',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Theo dõi tổng lượng Capsule Kì Bí hiện có, quy đổi gói x999 và hiệu suất ca up',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
                 ElevatedButton.icon(
                   onPressed: () => _showAddSessionDialog(context),
                   icon: const Icon(Icons.add_task, size: 18),

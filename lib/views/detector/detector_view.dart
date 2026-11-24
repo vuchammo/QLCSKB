@@ -27,24 +27,27 @@ class DetectorView extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Quản Lý Máy Dò Capsule Kì Bí',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Quản Lý Máy Dò Capsule Kì Bí',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Ghi nhận chi phí mua máy dò, theo dõi số lượng tồn và giá vốn',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[400]),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ghi nhận chi phí mua máy dò, theo dõi số lượng tồn và giá vốn',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
                 ElevatedButton.icon(
                   onPressed: () => _showAddPurchaseDialog(context),
                   icon: const Icon(Icons.add_shopping_cart, size: 18),
@@ -57,14 +60,18 @@ class DetectorView extends StatelessWidget {
             // Thống kê nhanh
             LayoutBuilder(
               builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth > 900 ? 3 : 1;
-                return GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                final crossAxisCount = constraints.maxWidth > 900
+                    ? 3
+                    : (constraints.maxWidth > 550 ? 2 : 1);
+                return GridView(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    mainAxisExtent: 125,
+                  ),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 2.3,
                   children: [
                     StatCard(
                       title: 'MÁY DÒ CÒN TỒN',
