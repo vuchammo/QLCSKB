@@ -3,6 +3,7 @@ import 'package:qlcskb/core/constants/app_constants.dart';
 import 'package:qlcskb/models/detector_purchase.dart';
 import 'package:qlcskb/models/farming_session.dart';
 import 'package:qlcskb/models/cskb_sale.dart';
+import 'package:qlcskb/models/cskb_usage.dart';
 import 'package:qlcskb/models/other_expense.dart';
 import 'package:qlcskb/services/calculation_service.dart';
 
@@ -128,6 +129,76 @@ void main() {
 
       // Kiểm tra ROI %: 15,080 / (79,920 + 5,000) * 100 = 17.76%
       expect(summary.roiVnd, closeTo(17.76, 0.1));
+    });
+
+    test('calculateSummary: Tính toán chính xác khi xuất dùng CSKB cho cá nhân', () {
+      final now = DateTime.now();
+
+      // Mua 100 máy dò = 100,000 VND (1,000 đ/cái)
+      final purchases = [
+        DetectorPurchase(
+          id: 'p1',
+          quantity: 100,
+          totalPrice: 100000.0,
+          currency: AppConstants.currencyVnd,
+          createdAt: now,
+        ),
+      ];
+
+      // Dùng 100 máy dò thu về 3,000 viên CSKB (Giá vốn 1 viên = 100,000 / 3000 = 33.333 đ)
+      final sessions = [
+        FarmingSession(
+          id: 's1',
+          detectorsUsed: 100,
+          cskbCollected: 3000,
+          createdAt: now,
+        ),
+      ];
+
+      // Bán 1 gói x999 (999 viên) giá 40,000 VND
+      final sales = [
+        CskbSale(
+          id: 'sale1',
+          packCount: 1,
+          looseCount: 0,
+          unitPricePerPack: 40000.0,
+          totalRevenue: 40000.0,
+          currency: AppConstants.currencyVnd,
+          createdAt: now,
+        ),
+      ];
+
+      // Tự lấy ra dùng cá nhân: 1 gói x999 + 500 viên lẻ = 1,499 viên
+      final usages = [
+        CskbUsage(
+          id: 'u1',
+          packCount: 1,
+          looseCount: 500,
+          purpose: 'Mở Cải trang Dracula',
+          createdAt: now,
+        ),
+      ];
+
+      final summary = CalculationService.calculateSummary(
+        purchases: purchases,
+        sessions: sessions,
+        sales: sales,
+        usages: usages,
+        expenses: [],
+      );
+
+      // Tồn kho: 3,000 (thu) - 999 (bán) - 1,499 (tự dùng) = 502 viên (0 gói + 502 lẻ)
+      expect(summary.totalCskbCollected, 3000);
+      expect(summary.totalCskbSold, 999);
+      expect(summary.totalCskbUsed, 1499);
+      expect(summary.usedPacks, 1);
+      expect(summary.usedLoose, 500);
+      expect(summary.currentCskbStock, 502);
+      expect(summary.stockPacks, 0);
+      expect(summary.stockLoose, 502);
+
+      // Giá vốn 1 viên = 33.333 đ -> Giá vốn tự dùng: 1,499 * 33.333 = 49,966.67 đ
+      expect(summary.personalConsumptionCostVnd, closeTo(1499 * (100000 / 3000), 0.1));
     });
   });
 }

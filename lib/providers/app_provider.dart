@@ -3,6 +3,7 @@ import '../core/constants/app_constants.dart';
 import '../models/detector_purchase.dart';
 import '../models/farming_session.dart';
 import '../models/cskb_sale.dart';
+import '../models/cskb_usage.dart';
 import '../models/other_expense.dart';
 import '../models/profit_loss_summary.dart';
 import '../models/team_model.dart';
@@ -26,6 +27,7 @@ class AppProvider extends ChangeNotifier {
   List<DetectorPurchase> _detectorPurchases = [];
   List<FarmingSession> _farmingSessions = [];
   List<CskbSale> _cskbSales = [];
+  List<CskbUsage> _cskbUsages = [];
   List<OtherExpense> _otherExpenses = [];
 
   double _exchangeRateTvToVnd = AppConstants.defaultTvToVndRate;
@@ -49,6 +51,7 @@ class AppProvider extends ChangeNotifier {
   List<DetectorPurchase> get detectorPurchases => _detectorPurchases;
   List<FarmingSession> get farmingSessions => _farmingSessions;
   List<CskbSale> get cskbSales => _cskbSales;
+  List<CskbUsage> get cskbUsages => _cskbUsages;
   List<OtherExpense> get otherExpenses => _otherExpenses;
   double get exchangeRateTvToVnd => _exchangeRateTvToVnd;
   String get defaultCurrency => _defaultCurrency;
@@ -72,6 +75,7 @@ class AppProvider extends ChangeNotifier {
       purchases: _detectorPurchases,
       sessions: _farmingSessions,
       sales: _cskbSales,
+      usages: _cskbUsages,
       expenses: _otherExpenses,
       exchangeRateTvToVnd: _exchangeRateTvToVnd,
       startDate: range.$1,
@@ -163,6 +167,7 @@ class AppProvider extends ChangeNotifier {
     _detectorPurchases = await _dbService.getAllDetectorPurchases();
     _farmingSessions = await _dbService.getAllFarmingSessions();
     _cskbSales = await _dbService.getAllCskbSales();
+    _cskbUsages = await _dbService.getAllCskbUsages();
     _otherExpenses = await _dbService.getAllOtherExpenses();
   }
 
@@ -172,6 +177,7 @@ class AppProvider extends ChangeNotifier {
       _detectorPurchases = await _supabase.fetchDetectorPurchases(_currentTeamCode!);
       _farmingSessions = await _supabase.fetchFarmingSessions(_currentTeamCode!);
       _cskbSales = await _supabase.fetchCskbSales(_currentTeamCode!);
+      _cskbUsages = await _supabase.fetchCskbUsages(_currentTeamCode!);
       _otherExpenses = await _supabase.fetchOtherExpenses(_currentTeamCode!);
       _teamMembers = await _supabase.getTeamMembers(_currentTeamCode!);
 
@@ -341,6 +347,31 @@ class AppProvider extends ChangeNotifier {
       await _refreshOnlineTeamData();
     } else {
       _cskbSales = await _dbService.getAllCskbSales();
+    }
+    notifyListeners();
+  }
+
+  // =================== XUẤT DÙNG CSKB CHO CÁ NHÂN ===================
+  Future<void> addCskbUsage(CskbUsage usage) async {
+    await _dbService.insertCskbUsage(usage);
+
+    if (isOnlineMode) {
+      await _supabase.insertCskbUsage(usage, _currentTeamCode!, _memberName);
+      await _refreshOnlineTeamData();
+    } else {
+      _cskbUsages = await _dbService.getAllCskbUsages();
+    }
+    notifyListeners();
+  }
+
+  Future<void> deleteCskbUsage(String id) async {
+    await _dbService.deleteCskbUsage(id);
+
+    if (isOnlineMode) {
+      await _supabase.deleteCskbUsage(id);
+      await _refreshOnlineTeamData();
+    } else {
+      _cskbUsages = await _dbService.getAllCskbUsages();
     }
     notifyListeners();
   }

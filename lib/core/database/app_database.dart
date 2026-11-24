@@ -28,9 +28,33 @@ class AppDatabase {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await _createCskbUsagesTable(db);
+        }
+      },
+      onOpen: (db) async {
+        // Đảm bảo bảng cskb_usages luôn tồn tại kể cả khi database cũ chưa nâng version
+        await _createCskbUsagesTable(db);
+      },
     );
+  }
+
+  static Future<void> _createCskbUsagesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS cskb_usages (
+        id TEXT PRIMARY KEY,
+        pack_count INTEGER NOT NULL DEFAULT 0,
+        loose_count INTEGER NOT NULL DEFAULT 0,
+        purpose TEXT NOT NULL,
+        character_name TEXT,
+        server TEXT NOT NULL DEFAULT 'Vũ trụ 1',
+        created_at TEXT NOT NULL,
+        note TEXT
+      )
+    ''');
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -88,7 +112,10 @@ class AppDatabase {
       )
     ''');
 
-    // 5. Bảng Cài đặt
+    // 5. Bảng Xuất Dùng CSKB Cá Nhân
+    await _createCskbUsagesTable(db);
+
+    // 6. Bảng Cài đặt
     await db.execute('''
       CREATE TABLE settings (
         key TEXT PRIMARY KEY,

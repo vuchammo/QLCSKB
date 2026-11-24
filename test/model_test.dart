@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:qlcskb/models/detector_purchase.dart';
 import 'package:qlcskb/models/farming_session.dart';
 import 'package:qlcskb/models/cskb_sale.dart';
+import 'package:qlcskb/models/cskb_usage.dart';
 import 'package:qlcskb/models/other_expense.dart';
 
 void main() {
@@ -76,6 +77,31 @@ void main() {
       final fromMap = OtherExpense.fromMap(map);
       expect(fromMap.title, 'Bùa dẻo dai');
       expect(fromMap.amount, 25000.0);
+    });
+
+    test('CskbUsage model serialization & totalCskb calculation', () {
+      final usage = CskbUsage(
+        id: 'usage-1',
+        packCount: 2,
+        looseCount: 50,
+        purpose: 'Mở Cải trang Dracula',
+        characterName: 'GokuSSJ',
+        server: 'Vũ trụ 1',
+        createdAt: DateTime.parse('2026-11-24T10:00:00.000'),
+        note: 'Mở ra Cải trang Dracula 30 ngày',
+      );
+
+      expect(usage.totalCskb, (2 * 999) + 50);
+      final map = usage.toMap();
+      final fromMap = CskbUsage.fromMap(map);
+
+      expect(fromMap.id, 'usage-1');
+      expect(fromMap.packCount, 2);
+      expect(fromMap.looseCount, 50);
+      expect(fromMap.totalCskb, (2 * 999) + 50);
+      expect(fromMap.purpose, 'Mở Cải trang Dracula');
+      expect(fromMap.characterName, 'GokuSSJ');
+      expect(fromMap.note, 'Mở ra Cải trang Dracula 30 ngày');
     });
   });
 }

@@ -3,6 +3,7 @@ import '../core/database/app_database.dart';
 import '../models/detector_purchase.dart';
 import '../models/farming_session.dart';
 import '../models/cskb_sale.dart';
+import '../models/cskb_usage.dart';
 import '../models/other_expense.dart';
 
 class DatabaseService {
@@ -112,6 +113,30 @@ class DatabaseService {
   Future<void> deleteOtherExpense(String id) async {
     final db = await _dbProvider.database;
     await db.delete('other_expenses', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // =================== XUẤT DÙNG CSKB CÁ NHÂN (USAGE) ===================
+  Future<void> insertCskbUsage(CskbUsage usage) async {
+    final db = await _dbProvider.database;
+    await db.insert(
+      'cskb_usages',
+      usage.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<CskbUsage>> getAllCskbUsages() async {
+    final db = await _dbProvider.database;
+    final result = await db.query(
+      'cskb_usages',
+      orderBy: 'created_at DESC',
+    );
+    return result.map((map) => CskbUsage.fromMap(map)).toList();
+  }
+
+  Future<void> deleteCskbUsage(String id) async {
+    final db = await _dbProvider.database;
+    await db.delete('cskb_usages', where: 'id = ?', whereArgs: [id]);
   }
 
   // =================== CÀI ĐẶT (SETTINGS) ===================

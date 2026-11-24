@@ -77,7 +77,21 @@ CREATE TABLE IF NOT EXISTS public.other_expenses (
     created_by TEXT
 );
 
--- 7. BẢNG CÀI ĐẶT NHÓM (TEAM SETTINGS)
+-- 7. BẢNG XUẤT DÙNG CSKB CHO CÁ NHÂN (CSKB USAGES)
+CREATE TABLE IF NOT EXISTS public.cskb_usages (
+    id TEXT PRIMARY KEY,
+    team_code TEXT NOT NULL REFERENCES public.teams(code) ON DELETE CASCADE,
+    pack_count INTEGER NOT NULL DEFAULT 0,
+    loose_count INTEGER NOT NULL DEFAULT 0,
+    purpose TEXT NOT NULL,
+    character_name TEXT,
+    server TEXT NOT NULL DEFAULT 'Vũ trụ 1',
+    created_at TIMESTAMPTZ NOT NULL,
+    note TEXT,
+    created_by TEXT
+);
+
+-- 8. BẢNG CÀI ĐẶT NHÓM (TEAM SETTINGS)
 CREATE TABLE IF NOT EXISTS public.team_settings (
     team_code TEXT NOT NULL REFERENCES public.teams(code) ON DELETE CASCADE,
     key TEXT NOT NULL,
@@ -117,6 +131,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'other_expenses') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.other_expenses;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'cskb_usages') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.cskb_usages;
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'team_settings') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.team_settings;
   END IF;
@@ -132,6 +149,7 @@ ALTER TABLE public.detector_purchases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.farming_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cskb_sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.other_expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cskb_usages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_settings ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Cho phép truy cập teams" ON public.teams;
@@ -151,6 +169,9 @@ CREATE POLICY "Cho phép truy cập cskb_sales" ON public.cskb_sales FOR ALL USI
 
 DROP POLICY IF EXISTS "Cho phép truy cập other_expenses" ON public.other_expenses;
 CREATE POLICY "Cho phép truy cập other_expenses" ON public.other_expenses FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép truy cập cskb_usages" ON public.cskb_usages;
+CREATE POLICY "Cho phép truy cập cskb_usages" ON public.cskb_usages FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Cho phép truy cập team_settings" ON public.team_settings;
 CREATE POLICY "Cho phép truy cập team_settings" ON public.team_settings FOR ALL USING (true) WITH CHECK (true);

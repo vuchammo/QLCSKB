@@ -5,6 +5,7 @@ import '../models/team_model.dart';
 import '../models/detector_purchase.dart';
 import '../models/farming_session.dart';
 import '../models/cskb_sale.dart';
+import '../models/cskb_usage.dart';
 import '../models/other_expense.dart';
 
 class CloudResponse<T> {
@@ -343,6 +344,45 @@ class SupabaseService {
       await client!.from('other_expenses').delete().eq('id', id);
     } catch (e) {
       debugPrint('Lỗi delete other_expenses: $e');
+    }
+  }
+
+  // =================== XUẤT DÙNG CSKB CÁ NHÂN ===================
+  /// Tải toàn bộ lượt xuất dùng CSKB cá nhân của nhóm
+  Future<List<CskbUsage>> fetchCskbUsages(String teamCode) async {
+    if (!_isInitialized) return [];
+    try {
+      final res = await client!
+          .from('cskb_usages')
+          .select()
+          .eq('team_code', teamCode)
+          .order('created_at', ascending: false);
+
+      return (res as List).map((m) => CskbUsage.fromMap(m)).toList();
+    } catch (e) {
+      debugPrint('Lỗi fetch cskb_usages: $e');
+      return [];
+    }
+  }
+
+  Future<void> insertCskbUsage(CskbUsage usage, String teamCode, String createdBy) async {
+    if (!_isInitialized) return;
+    try {
+      final map = usage.toMap();
+      map['team_code'] = teamCode;
+      map['created_by'] = createdBy;
+      await client!.from('cskb_usages').upsert(map);
+    } catch (e) {
+      debugPrint('Lỗi insert cskb_usages: $e');
+    }
+  }
+
+  Future<void> deleteCskbUsage(String id) async {
+    if (!_isInitialized) return;
+    try {
+      await client!.from('cskb_usages').delete().eq('id', id);
+    } catch (e) {
+      debugPrint('Lỗi delete cskb_usages: $e');
     }
   }
 

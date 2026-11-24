@@ -131,7 +131,7 @@ class DashboardView extends StatelessWidget {
             // Dòng thứ hai của KPI (Tài chính mở rộng)
             LayoutBuilder(
               builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth > 1100 ? 3 : (constraints.maxWidth > 700 ? 2 : 1);
+                final crossAxisCount = constraints.maxWidth > 1100 ? 4 : (constraints.maxWidth > 700 ? 2 : 1);
                 return GridView(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
@@ -155,6 +155,13 @@ class DashboardView extends StatelessWidget {
                       subtitle: 'Chi phí máy dò cho số CSKB đã bán',
                       icon: Icons.receipt_long_outlined,
                       accentColor: AppTheme.dangerRed,
+                    ),
+                    StatCard(
+                      title: 'CSKB ĐÃ TỰ DÙNG (CÁ NHÂN)',
+                      value: '${CurrencyFormatter.formatNumber(summary.totalCskbUsed)} viên',
+                      subtitle: 'Tự dùng: ${summary.usedPacks} gói${summary.usedLoose > 0 ? " + ${summary.usedLoose} lẻ" : ""} (Vốn: ${CurrencyFormatter.format(summary.personalConsumptionCostVnd)})',
+                      icon: Icons.card_giftcard,
+                      accentColor: Colors.purpleAccent,
                     ),
                     StatCard(
                       title: 'ĐỊNH GIÁ TỔN KHO ƯỚC TÍNH',

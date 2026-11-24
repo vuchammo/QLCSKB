@@ -232,15 +232,27 @@ class ReportsView extends StatelessWidget {
                     ),
                     const Divider(height: 16, color: AppTheme.borderDark),
 
-                    // 5. LỢI NHUẬN RÒNG
+                    // 5. LỢI NHUẬN RÒNG BÁN HÀNG
                     _buildPlRow(
-                      title: '5. LỢI NHUẬN RÒNG THỰC TẾ (NET PROFIT)',
-                      description: 'Lợi nhuận ròng cuối cùng bỏ túi',
+                      title: '5. LỢI NHUẬN RÒNG BÁN HÀNG (NET PROFIT)',
+                      description: 'Lợi nhuận ròng thu về từ hoạt động bán hàng',
                       amountVnd: summary.netProfitVnd,
                       amountTv: summary.netProfitTv,
                       color: summary.netProfitVnd >= 0 ? AppTheme.successGreen : AppTheme.dangerRed,
                       isBold: true,
                       backgroundColor: (summary.netProfitVnd >= 0 ? AppTheme.successGreen : AppTheme.dangerRed).withOpacity(0.1),
+                    ),
+                    const Divider(height: 16, color: AppTheme.borderDark),
+
+                    // 6. GIÁ TRỊ CSKB TỰ SỬ DỤNG CHO CÁ NHÂN
+                    _buildPlRow(
+                      title: '6. Giá trị CSKB đã xuất tự dùng (Cá nhân)',
+                      description: 'Tự dùng ${summary.usedPacks} gói${summary.usedLoose > 0 ? " + ${summary.usedLoose} lẻ" : ""} (${CurrencyFormatter.formatNumber(summary.totalCskbUsed)} viên) • Giá vốn tiêu thụ',
+                      amountVnd: summary.personalConsumptionCostVnd,
+                      amountTv: summary.personalConsumptionCostTv,
+                      color: Colors.purpleAccent,
+                      isBold: true,
+                      backgroundColor: Colors.purpleAccent.withOpacity(0.08),
                     ),
                   ],
                 ),
@@ -261,7 +273,7 @@ class ReportsView extends StatelessWidget {
                         Icon(Icons.insights, color: AppTheme.primaryOrange, size: 20),
                         SizedBox(width: 8),
                         Text(
-                          'Chỉ Số Hiệu Suất Up CSKB',
+                          'Chỉ Số Hiệu Suất & Tiêu Thụ CSKB',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -269,7 +281,7 @@ class ReportsView extends StatelessWidget {
                     const Divider(height: 24, color: AppTheme.borderDark),
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        final isWide = constraints.maxWidth > 800;
+                        final isWide = constraints.maxWidth > 900;
                         final tile1 = _buildMetricTile(
                           'Tỉ lệ rơi trung bình',
                           '${summary.averageDropRate.toStringAsFixed(1)} CSKB / máy',
@@ -283,6 +295,12 @@ class ReportsView extends StatelessWidget {
                           'Cần ~${summary.averageDropRate > 0 ? (AppConstants.packSize / summary.averageDropRate * 30 / 60).toStringAsFixed(1) : 0} giờ treo máy / gói',
                         );
                         final tile3 = _buildMetricTile(
+                          'CSKB Tự Dùng Cá Nhân',
+                          '${CurrencyFormatter.formatNumber(summary.totalCskbUsed)} viên',
+                          'Đã mở ${summary.usedPacks} gói${summary.usedLoose > 0 ? " + ${summary.usedLoose} lẻ" : ""} (Vốn: ${CurrencyFormatter.format(summary.personalConsumptionCostVnd)})',
+                          accentColor: Colors.purpleAccent,
+                        );
+                        final tile4 = _buildMetricTile(
                           'CSKB còn tồn kho',
                           '${CurrencyFormatter.formatNumber(summary.currentCskbStock)} viên',
                           'Tương đương ${summary.stockPacks} gói x999 + ${summary.stockLoose} lẻ',
@@ -296,6 +314,8 @@ class ReportsView extends StatelessWidget {
                               Expanded(child: tile2),
                               const SizedBox(width: 12),
                               Expanded(child: tile3),
+                              const SizedBox(width: 12),
+                              Expanded(child: tile4),
                             ],
                           );
                         } else {
@@ -306,6 +326,8 @@ class ReportsView extends StatelessWidget {
                               tile2,
                               const SizedBox(height: 10),
                               tile3,
+                              const SizedBox(height: 10),
+                              tile4,
                             ],
                           );
                         }
@@ -399,7 +421,7 @@ class ReportsView extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricTile(String title, String value, String subtitle) {
+  Widget _buildMetricTile(String title, String value, String subtitle, {Color accentColor = AppTheme.primaryGold}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -415,7 +437,7 @@ class ReportsView extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primaryGold),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor),
           ),
           const SizedBox(height: 4),
           Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey[500])),

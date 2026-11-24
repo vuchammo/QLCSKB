@@ -28,7 +28,13 @@ class ProfitLossSummary {
 
   final int totalCskbCollected;
   final int totalCskbSold;
-  final int currentCskbStock; // Tổng số viên CSKB còn tồn
+  final int totalCskbUsed; // Số lượng CSKB đã lấy ra dùng cá nhân
+  final int currentCskbStock; // Tổng số viên CSKB còn tồn thực tế (Thu được - Đã bán - Đã tự dùng)
+
+  // Giá trị tiêu dùng cá nhân (Personal Consumption Value)
+  final double personalConsumptionCostVnd; // Giá vốn của số CSKB tự dùng
+  final double personalConsumptionCostTv;
+  final double personalConsumptionMarketValueVnd; // Giá trị thị trường nếu phải mua ngoài
 
   // Hiệu suất
   final double averageDropRate; // Trung bình số CSKB nhặt được trên 1 máy dò
@@ -52,16 +58,24 @@ class ProfitLossSummary {
     required this.currentDetectorStock,
     required this.totalCskbCollected,
     required this.totalCskbSold,
+    this.totalCskbUsed = 0,
     required this.currentCskbStock,
+    this.personalConsumptionCostVnd = 0.0,
+    this.personalConsumptionCostTv = 0.0,
+    this.personalConsumptionMarketValueVnd = 0.0,
     required this.averageDropRate,
     required this.estimatedInventoryValueVnd,
   });
 
-  // Tự động quy đổi số gói x999 và số viên lẻ
+  // Tự động quy đổi số gói x999 và số viên lẻ tồn kho
   int get stockPacks => currentCskbStock ~/ AppConstants.packSize;
   int get stockLoose => currentCskbStock % AppConstants.packSize;
 
-  // Tỷ suất sinh lời ROI (%)
+  // Tự động quy đổi số gói x999 và số viên lẻ đã tự dùng
+  int get usedPacks => totalCskbUsed ~/ AppConstants.packSize;
+  int get usedLoose => totalCskbUsed % AppConstants.packSize;
+
+  // Tỷ suất sinh lời ROI (%) từ hoạt động kinh doanh bán hàng
   double get roiVnd {
     final totalCost = cogsVnd + otherExpensesVnd;
     if (totalCost <= 0) return 0.0;

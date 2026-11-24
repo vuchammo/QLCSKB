@@ -2,6 +2,7 @@ import '../core/constants/app_constants.dart';
 import '../models/detector_purchase.dart';
 import '../models/farming_session.dart';
 import '../models/cskb_sale.dart';
+import '../models/cskb_usage.dart';
 import '../models/other_expense.dart';
 import '../models/profit_loss_summary.dart';
 
@@ -23,11 +24,12 @@ class CalculationService {
     return (packs * AppConstants.packSize) + loose;
   }
 
-  /// Tính toán tổng hợp Lời / Lỗ và Tồn kho
+  /// Tính toán tổng hợp Lời / Lỗ và Tồn kho (bao gồm cả CSKB bán ra và tự dùng)
   static ProfitLossSummary calculateSummary({
     required List<DetectorPurchase> purchases,
     required List<FarmingSession> sessions,
     required List<CskbSale> sales,
+    List<CskbUsage> usages = const [],
     required List<OtherExpense> expenses,
     double exchangeRateTvToVnd = AppConstants.defaultTvToVndRate,
     DateTime? startDate,
@@ -37,6 +39,7 @@ class CalculationService {
     final filteredPurchases = _filterByDate(purchases, startDate, endDate, (p) => p.createdAt);
     final filteredSessions = _filterByDate(sessions, startDate, endDate, (s) => s.createdAt);
     final filteredSales = _filterByDate(sales, startDate, endDate, (s) => s.createdAt);
+    final filteredUsages = _filterByDate(usages, startDate, endDate, (u) => u.createdAt);
     final filteredExpenses = _filterByDate(expenses, startDate, endDate, (e) => e.createdAt);
 
     // 2. Thống kê Máy Dò
@@ -92,10 +95,17 @@ class CalculationService {
       }
     }
 
-    final currentCskbStock = totalCskbCollected - totalCskbSold;
+    // 5. Thống kê CSKB Lấy Ra Sử Dụng Cá Nhân
+    int totalCskbUsed = 0;
+    for (final u in filteredUsages) {
+      totalCskbUsed += u.totalCskb;
+    }
 
-    // 5. Giá vốn hàng bán (COGS - Cost of Goods Sold)
-    // Giá vốn trung bình 1 máy dò (VND):
+    // Tồn kho CSKB thực tế = Tổng thu hoạch - Tổng đã bán - Tổng đã tự dùng
+    final currentCskbStock = totalCskbCollected - totalCskbSold - totalCskbUsed;
+
+    // 6. Giá vốn hàng bán (COGS - Cost of Goods Sold)
+    // Giá vốn trung bình 1 máy dò (VND & TV):
     final avgCostPerDetectorVnd = totalDetectorsPurchased > 0
         ? (totalDetectorExpenseVnd / totalDetectorsPurchased)
         : 0.0;
@@ -111,11 +121,20 @@ class CalculationService {
         ? ((totalDetectorsUsed * avgCostPerDetectorTv) / totalCskbCollected)
         : 0.0;
 
-    // Tổng giá vốn tương ứng với số lượng CSKB đã bán:
+    // Tổng giá vốn tương ứng với số lượng CSKB đã bán cho khách:
     final cogsVnd = totalCskbSold * avgCostPerCskbVnd;
     final cogsTv = totalCskbSold * avgCostPerCskbTv;
 
-    // 6. Chi phí phụ khác (Bùa, VPS, ...)
+    // Giá trị tiêu dùng cá nhân (Chi phí giá vốn số CSKB đã tự mở/dùng)
+    final personalConsumptionCostVnd = totalCskbUsed * avgCostPerCskbVnd;
+    final personalConsumptionCostTv = totalCskbUsed * avgCostPerCskbTv;
+
+    // Giá trị tương đương nếu phải bỏ tiền mua ngoài thị trường
+    final personalConsumptionMarketValueVnd = latestPackPriceVnd > 0
+        ? (totalCskbUsed / AppConstants.packSize) * latestPackPriceVnd
+        : personalConsumptionCostVnd;
+
+    // 7. Chi phí phụ khác (Bùa, VPS, ...)
     double otherExpensesVnd = 0.0;
     double otherExpensesTv = 0.0;
     for (final e in filteredExpenses) {
@@ -128,12 +147,11 @@ class CalculationService {
       }
     }
 
-    // 7. Lợi nhuận ròng
+    // 8. Lợi nhuận ròng
     final netProfitVnd = totalRevenueVnd - cogsVnd - otherExpensesVnd;
     final netProfitTv = totalRevenueTv - cogsTv - otherExpensesTv;
 
-    // 8. Định giá tồn kho ước tính
-    // Gồm: Giá trị máy dò còn tồn + Giá trị CSKB còn tồn (định giá theo giá bán gần nhất hoặc giá vốn)
+    // 9. Định giá tồn kho ước tính
     final detectorStockValueVnd = currentDetectorStock > 0 ? currentDetectorStock * avgCostPerDetectorVnd : 0.0;
     final cskbStockValueVnd = currentCskbStock > 0
         ? (latestPackPriceVnd > 0
@@ -158,7 +176,11 @@ class CalculationService {
       currentDetectorStock: currentDetectorStock,
       totalCskbCollected: totalCskbCollected,
       totalCskbSold: totalCskbSold,
+      totalCskbUsed: totalCskbUsed,
       currentCskbStock: currentCskbStock,
+      personalConsumptionCostVnd: personalConsumptionCostVnd,
+      personalConsumptionCostTv: personalConsumptionCostTv,
+      personalConsumptionMarketValueVnd: personalConsumptionMarketValueVnd,
       averageDropRate: averageDropRate,
       estimatedInventoryValueVnd: estimatedInventoryValueVnd,
     );
