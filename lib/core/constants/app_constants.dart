@@ -1,7 +1,7 @@
 class AppConstants {
   static const int packSize = 999; // 1 gói CSKB = 999 viên
   static const String appTitle = 'Quản Lý Up CSKB - Ngọc Rồng Online';
-  static const String version = '1.0.0';
+  static const String version = '1.0.1';
 
   // Tiền tệ
   static const String currencyVnd = 'VND';
