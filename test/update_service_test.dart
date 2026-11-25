@@ -25,17 +25,17 @@ void main() {
         'tag_name': 'v1.1.0',
         'name': 'Phiên bản 1.1.0 - Thêm Máy Dò & Báo Cáo',
         'body': '- Thêm tính năng xuất dùng cá nhân\n- Tối ưu giao diện',
-        'html_url': 'https://github.com/vuanhpham25/QLCSKB/releases/tag/v1.1.0',
+        'html_url': 'https://github.com/vuchammo/QLCSKB/releases/tag/v1.1.0',
         'published_at': '2026-11-25T10:00:00Z',
         'assets': [
           {
             'name': 'QLCSKB_Windows_x64.zip',
-            'browser_download_url': 'https://github.com/vuanhpham25/QLCSKB/releases/download/v1.1.0/QLCSKB_Windows_x64.zip',
+            'browser_download_url': 'https://github.com/vuchammo/QLCSKB/releases/download/v1.1.0/QLCSKB_Windows_x64.zip',
             'size': 25000000,
           },
           {
             'name': 'QLCSKB_macOS.zip',
-            'browser_download_url': 'https://github.com/vuanhpham25/QLCSKB/releases/download/v1.1.0/QLCSKB_macOS.zip',
+            'browser_download_url': 'https://github.com/vuchammo/QLCSKB/releases/download/v1.1.0/QLCSKB_macOS.zip',
             'size': 28000000,
           }
         ]
@@ -47,9 +47,9 @@ void main() {
       expect(info.currentVersion, '1.0.0');
       expect(info.hasUpdate, isTrue);
       expect(info.releaseName, 'Phiên bản 1.1.0 - Thêm Máy Dò & Báo Cáo');
-      expect(info.windowsDownloadUrl, 'https://github.com/vuanhpham25/QLCSKB/releases/download/v1.1.0/QLCSKB_Windows_x64.zip');
+      expect(info.windowsDownloadUrl, 'https://github.com/vuchammo/QLCSKB/releases/download/v1.1.0/QLCSKB_Windows_x64.zip');
       expect(info.windowsFileSize, 25000000);
-      expect(info.macosDownloadUrl, 'https://github.com/vuanhpham25/QLCSKB/releases/download/v1.1.0/QLCSKB_macOS.zip');
+      expect(info.macosDownloadUrl, 'https://github.com/vuchammo/QLCSKB/releases/download/v1.1.0/QLCSKB_macOS.zip');
       expect(info.macosFileSize, 28000000);
 
       // Khi phiên bản hiện tại đã là 1.1.0

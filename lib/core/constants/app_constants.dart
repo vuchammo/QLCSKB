@@ -40,7 +40,7 @@ class AppConstants {
   static const String settingMemberName = 'member_name';
 
   // Cài đặt Tự động Cập nhật
-  static const String defaultGithubRepo = 'vuanhpham25/QLCSKB';
+  static const String defaultGithubRepo = 'vuchammo/QLCSKB';
   static const String settingGithubRepo = 'github_repo';
   static const String settingAutoCheckUpdate = 'auto_check_update';
   static const String settingLastUpdateCheckTime = 'last_update_check_time';
