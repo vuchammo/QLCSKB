@@ -7,9 +7,11 @@ import '../models/cskb_usage.dart';
 import '../models/other_expense.dart';
 import '../models/profit_loss_summary.dart';
 import '../models/team_model.dart';
+import '../models/app_update_info.dart';
 import '../services/database_service.dart';
 import '../services/calculation_service.dart';
 import '../services/supabase_service.dart';
+import '../services/update_service.dart';
 
 enum DateFilterMode {
   all,
@@ -34,6 +36,14 @@ class AppProvider extends ChangeNotifier {
   String _defaultCurrency = AppConstants.currencyVnd;
   String _defaultServer = AppConstants.defaultServer;
   bool _isLoading = true;
+
+  // Cập nhật phiên bản
+  final UpdateService _updateService = UpdateService();
+  AppUpdateInfo? _availableUpdate;
+  bool _isCheckingUpdate = false;
+  String _currentAppVersion = AppConstants.version;
+  String _githubRepo = AppConstants.defaultGithubRepo;
+  bool _autoCheckUpdate = true;
 
   // Trạng thái Cloud & Đội nhóm
   String? _currentTeamCode;
@@ -60,6 +70,14 @@ class AppProvider extends ChangeNotifier {
   DateFilterMode get dateFilterMode => _dateFilterMode;
   DateTime? get customStartDate => _customStartDate;
   DateTime? get customEndDate => _customEndDate;
+
+  // Getters Cập nhật phiên bản
+  AppUpdateInfo? get availableUpdate => _availableUpdate;
+  bool get isCheckingUpdate => _isCheckingUpdate;
+  String get currentAppVersion => _currentAppVersion;
+  String get githubRepo => _githubRepo;
+  bool get autoCheckUpdate => _autoCheckUpdate;
+  UpdateService get updateService => _updateService;
 
   // Getters Cloud & Đội nhóm
   bool get isOnlineMode => _currentTeamCode != null && _currentTeamCode!.isNotEmpty;
@@ -131,6 +149,20 @@ class AppProvider extends ChangeNotifier {
         _defaultServer = server;
       }
 
+      final repo = await _dbService.getSetting(AppConstants.settingGithubRepo);
+      if (repo != null && repo.isNotEmpty) {
+        _githubRepo = repo;
+      }
+
+      final autoCheck = await _dbService.getSetting(AppConstants.settingAutoCheckUpdate);
+      if (autoCheck != null) {
+        _autoCheckUpdate = autoCheck == 'true';
+      }
+
+      try {
+        _currentAppVersion = await UpdateService.getCurrentAppVersion();
+      } catch (_) {}
+
       final url = await _dbService.getSetting(AppConstants.settingSupabaseUrl);
       final key = await _dbService.getSetting(AppConstants.settingSupabaseAnonKey);
       _supabaseUrl = url ?? '';
@@ -167,6 +199,12 @@ class AppProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+
+      if (_autoCheckUpdate) {
+        Future.delayed(const Duration(seconds: 3), () {
+          checkForUpdate(manual: false);
+        });
+      }
     }
   }
 
@@ -456,6 +494,47 @@ class AppProvider extends ChangeNotifier {
     _dateFilterMode = mode;
     _customStartDate = start;
     _customEndDate = end;
+    notifyListeners();
+  }
+
+  // =================== CẬP NHẬT PHIÊN BẢN (AUTO-UPDATE) ===================
+  Future<AppUpdateInfo?> checkForUpdate({bool manual = false}) async {
+    _isCheckingUpdate = true;
+    notifyListeners();
+    try {
+      final info = await _updateService.checkForUpdate(
+        currentVersion: _currentAppVersion,
+        repo: _githubRepo,
+      );
+      if (info != null && info.hasUpdate) {
+        _availableUpdate = info;
+      } else if (manual) {
+        _availableUpdate = info;
+      }
+      return info;
+    } catch (e) {
+      debugPrint('Error checking for update: $e');
+      return null;
+    } finally {
+      _isCheckingUpdate = false;
+      notifyListeners();
+    }
+  }
+
+  void dismissUpdateBanner() {
+    _availableUpdate = null;
+    notifyListeners();
+  }
+
+  Future<void> updateGithubRepo(String repo) async {
+    _githubRepo = repo;
+    await _dbService.setSetting(AppConstants.settingGithubRepo, repo);
+    notifyListeners();
+  }
+
+  Future<void> updateAutoCheckUpdate(bool enabled) async {
+    _autoCheckUpdate = enabled;
+    await _dbService.setSetting(AppConstants.settingAutoCheckUpdate, enabled.toString());
     notifyListeners();
   }
 }

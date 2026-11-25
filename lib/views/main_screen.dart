@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../core/constants/app_constants.dart';
 import '../core/theme/app_theme.dart';
 import 'dashboard/dashboard_view.dart';
 import 'detector/detector_view.dart';
@@ -11,6 +10,7 @@ import 'reports/reports_view.dart';
 import 'calculator/calculator_view.dart';
 import 'sync/team_sync_view.dart';
 import 'settings/settings_view.dart';
+import 'settings/widgets/update_dialog.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -189,7 +189,13 @@ class _MainScreenState extends State<MainScreen> {
                         'Đội Nhóm Online',
                         badgeText: provider.isOnlineMode ? 'LIVE' : null,
                       ),
-                      _buildMenuItem(7, Icons.settings_outlined, Icons.settings, 'Cài Đặt & Chi Phí'),
+                      _buildMenuItem(
+                        7,
+                        Icons.settings_outlined,
+                        Icons.settings,
+                        'Cài Đặt & Chi Phí',
+                        badgeText: provider.availableUpdate?.hasUpdate == true ? 'NEW' : null,
+                      ),
                     ],
                   ),
                 ),
@@ -203,8 +209,8 @@ class _MainScreenState extends State<MainScreen> {
                       const SizedBox(width: 8),
                       Text(
                         provider.isOnlineMode
-                            ? 'v${AppConstants.version} Cloud Sync'
-                            : 'v${AppConstants.version} Offline DB',
+                            ? 'v${provider.currentAppVersion} Cloud Sync'
+                            : 'v${provider.currentAppVersion} Offline DB',
                         style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                       ),
                     ],
@@ -216,7 +222,65 @@ class _MainScreenState extends State<MainScreen> {
 
           // Màn hình nội dung chính bên phải
           Expanded(
-            child: _screens[_selectedIndex],
+            child: Column(
+              children: [
+                if (provider.availableUpdate != null && provider.availableUpdate!.hasUpdate)
+                  _buildUpdateBanner(context, provider),
+                Expanded(child: _screens[_selectedIndex]),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpdateBanner(BuildContext context, AppProvider provider) {
+    final update = provider.availableUpdate!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryOrange.withOpacity(0.15),
+        border: const Border(
+          bottom: BorderSide(color: AppTheme.primaryOrange, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.rocket_launch, color: AppTheme.primaryOrange, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Đã có phiên bản mới: v${update.latestVersion}! Khám phá các tính năng mới và cải tiến hiệu năng.',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryOrange,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () {
+              UpdateDialog.show(
+                context,
+                updateInfo: update,
+                updateService: provider.updateService,
+              );
+            },
+            icon: const Icon(Icons.arrow_upward, size: 14),
+            label: const Text('Xem & Cập Nhật', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+            tooltip: 'Đóng thông báo',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () => provider.dismissUpdateBanner(),
           ),
         ],
       ),

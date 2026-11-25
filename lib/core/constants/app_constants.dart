@@ -39,6 +39,12 @@ class AppConstants {
   static const String settingCurrentTeamName = 'current_team_name';
   static const String settingMemberName = 'member_name';
 
+  // Cài đặt Tự động Cập nhật
+  static const String defaultGithubRepo = 'vuanhpham25/QLCSKB';
+  static const String settingGithubRepo = 'github_repo';
+  static const String settingAutoCheckUpdate = 'auto_check_update';
+  static const String settingLastUpdateCheckTime = 'last_update_check_time';
+
   // Tỷ giá mặc định: 1 Thỏi Vàng = 350 VND (có thể tùy chỉnh)
   static const double defaultTvToVndRate = 350.0;
 }

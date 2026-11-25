@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -7,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../models/other_expense.dart';
+import 'widgets/update_dialog.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -18,6 +21,7 @@ class SettingsView extends StatefulWidget {
 class _SettingsViewState extends State<SettingsView> {
   late TextEditingController _rateController;
   late TextEditingController _serverController;
+  late TextEditingController _repoController;
 
   @override
   void initState() {
@@ -25,12 +29,14 @@ class _SettingsViewState extends State<SettingsView> {
     final provider = context.read<AppProvider>();
     _rateController = TextEditingController(text: provider.exchangeRateTvToVnd.toString());
     _serverController = TextEditingController(text: provider.defaultServer);
+    _repoController = TextEditingController(text: provider.githubRepo);
   }
 
   @override
   void dispose() {
     _rateController.dispose();
     _serverController.dispose();
+    _repoController.dispose();
     super.dispose();
   }
 
@@ -291,25 +297,179 @@ class _SettingsViewState extends State<SettingsView> {
 
             const SizedBox(height: 24),
 
-            // Card 3: Thông tin ứng dụng
+            // Card 3: Thông tin ứng dụng & Cập nhật phiên bản
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, color: AppTheme.kiCyan, size: 32),
-                    const SizedBox(width: 16),
-                    Column(
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          AppConstants.appTitle,
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.kiCyan.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.system_update_alt, color: AppTheme.kiCyan, size: 28),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Phiên bản: ${AppConstants.version} • Chạy Offline độc lập trên Windows • Cơ sở dữ liệu SQLite cục bộ',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    AppConstants.appTitle,
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: Colors.white24),
+                                    ),
+                                    child: Text(
+                                      'v${provider.currentAppVersion}',
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryGold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Nền tảng: ${kIsWeb ? "Web" : (Platform.isWindows ? "Windows Desktop" : (Platform.isMacOS ? "macOS Desktop" : "Desktop"))} • Cơ sở dữ liệu SQLite cục bộ (Offline-first)',
+                                style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: provider.availableUpdate?.hasUpdate == true
+                                ? AppTheme.primaryOrange
+                                : AppTheme.cardDark,
+                            foregroundColor: provider.availableUpdate?.hasUpdate == true
+                                ? Colors.black
+                                : Colors.white,
+                            side: const BorderSide(color: AppTheme.primaryGold),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onPressed: provider.isCheckingUpdate
+                              ? null
+                              : () async {
+                                  final info = await provider.checkForUpdate(manual: true);
+                                  if (!context.mounted) return;
+                                  if (info != null && info.hasUpdate) {
+                                    UpdateDialog.show(
+                                      context,
+                                      updateInfo: info,
+                                      updateService: provider.updateService,
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Bạn đang sử dụng phiên bản mới nhất (v${provider.currentAppVersion})!'),
+                                        backgroundColor: AppTheme.successGreen,
+                                      ),
+                                    );
+                                  }
+                                },
+                          icon: provider.isCheckingUpdate
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryGold),
+                                )
+                              : Icon(
+                                  provider.availableUpdate?.hasUpdate == true
+                                      ? Icons.rocket_launch
+                                      : Icons.refresh,
+                                  size: 18,
+                                ),
+                          label: Text(
+                            provider.isCheckingUpdate
+                                ? 'Đang kiểm tra...'
+                                : (provider.availableUpdate?.hasUpdate == true
+                                    ? 'Có Bản Mới: v${provider.availableUpdate!.latestVersion}'
+                                    : 'Kiểm Tra Cập Nhật'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 28, color: AppTheme.borderDark),
+
+                    // Tùy chọn Tự động kiểm tra & Cấu hình Repo
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Tự động kiểm tra bản cập nhật khi mở app',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Ứng dụng sẽ thông báo khi phát hiện bản phát hành mới trên GitHub',
+                              style: TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: provider.autoCheckUpdate,
+                          activeColor: AppTheme.primaryGold,
+                          onChanged: (val) {
+                            provider.updateAutoCheckUpdate(val);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Cấu hình nâng cao: Kho lưu trữ GitHub (Repository)',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _repoController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'GitHub Repository (owner/repo)',
+                                    hintText: AppConstants.defaultGithubRepo,
+                                    prefixIcon: Icon(Icons.code, size: 18, color: Colors.grey),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  final repo = _repoController.text.trim();
+                                  if (repo.isNotEmpty) {
+                                    provider.updateGithubRepo(repo);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Đã cập nhật kho lưu trữ: $repo')),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.save, size: 16),
+                                label: const Text('Lưu Kho'),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
