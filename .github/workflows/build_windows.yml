@@ -28,13 +28,16 @@ jobs:
       - name: Run Unit Tests
         run: flutter test
 
+      - name: Setup MSVC Developer Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
       - name: Build Windows Executable
         run: flutter build windows --release
-        env:
-          CMAKE_GENERATOR: "Visual Studio 17 2022"
 
       - name: Archive Windows Release
         run: |
