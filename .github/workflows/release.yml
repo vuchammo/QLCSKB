@@ -39,6 +39,8 @@ jobs:
 
       - name: Build Windows Executable
         run: flutter build windows --release
+        env:
+          CMAKE_GENERATOR: Ninja
 
       - name: Compress Windows Release
         run: |
