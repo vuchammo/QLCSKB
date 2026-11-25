@@ -16,7 +16,7 @@ class CskbUsage {
     this.looseCount = 0,
     required this.purpose,
     this.characterName,
-    this.server = 'Vũ trụ 1',
+    this.server = AppConstants.defaultServer,
     required this.createdAt,
     this.note,
   });
@@ -44,7 +44,7 @@ class CskbUsage {
       looseCount: (map['loose_count'] as num?)?.toInt() ?? 0,
       purpose: (map['purpose'] as String?) ?? 'Sử dụng cá nhân',
       characterName: map['character_name'] as String?,
-      server: (map['server'] as String?) ?? 'Vũ trụ 1',
+      server: (map['server'] as String?) ?? AppConstants.defaultServer,
       createdAt: DateTime.parse(map['created_at'] as String),
       note: map['note'] as String?,
     );

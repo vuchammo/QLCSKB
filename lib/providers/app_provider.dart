@@ -32,6 +32,7 @@ class AppProvider extends ChangeNotifier {
 
   double _exchangeRateTvToVnd = AppConstants.defaultTvToVndRate;
   String _defaultCurrency = AppConstants.currencyVnd;
+  String _defaultServer = AppConstants.defaultServer;
   bool _isLoading = true;
 
   // Trạng thái Cloud & Đội nhóm
@@ -55,6 +56,7 @@ class AppProvider extends ChangeNotifier {
   List<OtherExpense> get otherExpenses => _otherExpenses;
   double get exchangeRateTvToVnd => _exchangeRateTvToVnd;
   String get defaultCurrency => _defaultCurrency;
+  String get defaultServer => _defaultServer;
   DateFilterMode get dateFilterMode => _dateFilterMode;
   DateTime? get customStartDate => _customStartDate;
   DateTime? get customEndDate => _customEndDate;
@@ -122,6 +124,11 @@ class AppProvider extends ChangeNotifier {
       final curr = await _dbService.getSetting(AppConstants.settingDefaultCurrency);
       if (curr != null) {
         _defaultCurrency = curr;
+      }
+
+      final server = await _dbService.getSetting(AppConstants.settingDefaultServer);
+      if (server != null && server.isNotEmpty) {
+        _defaultServer = server;
       }
 
       final url = await _dbService.getSetting(AppConstants.settingSupabaseUrl);
@@ -429,6 +436,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   // =================== CÀI ĐẶT & LỌC ===================
+  Future<void> updateDefaultServer(String server) async {
+    _defaultServer = server;
+    await _dbService.setSetting(AppConstants.settingDefaultServer, server);
+    notifyListeners();
+  }
+
   Future<void> updateExchangeRate(double rate) async {
     _exchangeRateTvToVnd = rate;
     await _dbService.setSetting(AppConstants.settingExchangeRateTvToVnd, rate.toString());

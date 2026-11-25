@@ -263,11 +263,12 @@ class SalesView extends StatelessWidget {
   }
 
   void _showAddSaleDialog(BuildContext context) {
+    final defaultServer = context.read<AppProvider>().defaultServer;
     final packCountController = TextEditingController(text: '1');
     final looseCountController = TextEditingController(text: '0');
     final pricePerPackController = TextEditingController();
     final customerController = TextEditingController();
-    final serverController = TextEditingController(text: 'Vũ trụ 1');
+    final serverController = TextEditingController(text: defaultServer);
     final noteController = TextEditingController();
     String selectedCurrency = AppConstants.currencyVnd;
     String selectedStatus = 'PAID';
@@ -442,9 +443,28 @@ class SalesView extends StatelessWidget {
                                 const SizedBox(height: 6),
                                 TextField(
                                   controller: serverController,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Vũ trụ 1',
+                                  decoration: InputDecoration(
+                                    hintText: defaultServer,
                                   ),
+                                ),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  children: AppConstants.serverList.take(4).map((s) {
+                                    return InkWell(
+                                      onTap: () => setState(() => serverController.text = s),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.06),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: Colors.white12),
+                                        ),
+                                        child: Text(s, style: const TextStyle(fontSize: 10, color: Colors.white70)),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
                               ],
                             ),
@@ -548,7 +568,7 @@ class SalesView extends StatelessWidget {
                   child: const Text('Hủy'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     final packCount = int.tryParse(packCountController.text.trim()) ?? 0;
                     final looseCount = int.tryParse(looseCountController.text.trim()) ?? 0;
                     final unitPrice = double.tryParse(pricePerPackController.text.trim().replaceAll(',', '')) ?? 0.0;
@@ -568,14 +588,16 @@ class SalesView extends StatelessWidget {
                       totalRevenue: totalCalculatedRevenue,
                       currency: selectedCurrency,
                       customerName: customerController.text.trim(),
-                      server: serverController.text.trim().isNotEmpty ? serverController.text.trim() : 'Vũ trụ 1',
+                      server: serverController.text.trim().isNotEmpty ? serverController.text.trim() : defaultServer,
                       createdAt: selectedDateTime,
                       status: selectedStatus,
                       note: noteController.text.trim(),
                     );
 
-                    context.read<AppProvider>().addCskbSale(sale);
-                    Navigator.of(dialogCtx).pop();
+                    await context.read<AppProvider>().addCskbSale(sale);
+                    if (dialogCtx.mounted) {
+                      Navigator.of(dialogCtx).pop();
+                    }
                   },
                   child: const Text('Lưu Đơn Bán'),
                 ),

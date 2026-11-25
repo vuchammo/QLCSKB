@@ -506,9 +506,10 @@ class _FarmingViewState extends State<FarmingView> with SingleTickerProviderStat
   }
 
   void _showAddSessionDialog(BuildContext context) {
+    final defaultServer = context.read<AppProvider>().defaultServer;
     final detectorsController = TextEditingController();
     final cskbController = TextEditingController();
-    final serverController = TextEditingController(text: 'Vũ trụ 1');
+    final serverController = TextEditingController(text: defaultServer);
     final accountController = TextEditingController();
     final noteController = TextEditingController();
     DateTime selectedDateTime = DateTime.now();
@@ -595,9 +596,28 @@ class _FarmingViewState extends State<FarmingView> with SingleTickerProviderStat
                                 const SizedBox(height: 6),
                                 TextField(
                                   controller: serverController,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Vũ trụ 1',
+                                  decoration: InputDecoration(
+                                    hintText: defaultServer,
                                   ),
+                                ),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  children: AppConstants.serverList.take(4).map((s) {
+                                    return InkWell(
+                                      onTap: () => setState(() => serverController.text = s),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.06),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: Colors.white12),
+                                        ),
+                                        child: Text(s, style: const TextStyle(fontSize: 10, color: Colors.white70)),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
                               ],
                             ),
@@ -701,7 +721,7 @@ class _FarmingViewState extends State<FarmingView> with SingleTickerProviderStat
                       id: const Uuid().v4(),
                       detectorsUsed: detectorsCount,
                       cskbCollected: cskbCount,
-                      server: serverController.text.trim().isNotEmpty ? serverController.text.trim() : 'Vũ trụ 1',
+                      server: serverController.text.trim().isNotEmpty ? serverController.text.trim() : defaultServer,
                       accountName: accountController.text.trim(),
                       createdAt: selectedDateTime,
                       note: noteController.text.trim(),
@@ -731,7 +751,7 @@ class _FarmingViewState extends State<FarmingView> with SingleTickerProviderStat
     final looseController = TextEditingController(text: '0');
     final purposeController = TextEditingController(text: 'Mở Cải trang Dracula');
     final characterController = TextEditingController(text: provider.memberName);
-    final serverController = TextEditingController(text: 'Vũ trụ 1');
+    final serverController = TextEditingController(text: provider.defaultServer);
     final noteController = TextEditingController();
     DateTime selectedDateTime = DateTime.now();
 
@@ -985,7 +1005,26 @@ class _FarmingViewState extends State<FarmingView> with SingleTickerProviderStat
                                 const SizedBox(height: 6),
                                 TextField(
                                   controller: serverController,
-                                  decoration: const InputDecoration(hintText: 'Vũ trụ 1'),
+                                  decoration: InputDecoration(hintText: provider.defaultServer),
+                                ),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  children: AppConstants.serverList.take(4).map((s) {
+                                    return InkWell(
+                                      onTap: () => setState(() => serverController.text = s),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.06),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: Colors.white12),
+                                        ),
+                                        child: Text(s, style: const TextStyle(fontSize: 10, color: Colors.white70)),
+                                      ),
+                                    );
+                                  }).toList(),
                                 ),
                               ],
                             ),
@@ -1078,7 +1117,7 @@ class _FarmingViewState extends State<FarmingView> with SingleTickerProviderStat
                       looseCount: loose,
                       purpose: purposeController.text.trim().isNotEmpty ? purposeController.text.trim() : 'Sử dụng cá nhân',
                       characterName: characterController.text.trim(),
-                      server: serverController.text.trim().isNotEmpty ? serverController.text.trim() : 'Vũ trụ 1',
+                      server: serverController.text.trim().isNotEmpty ? serverController.text.trim() : provider.defaultServer,
                       createdAt: selectedDateTime,
                       note: noteController.text.trim(),
                     );

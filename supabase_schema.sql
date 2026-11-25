@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS public.farming_sessions (
     team_code TEXT NOT NULL REFERENCES public.teams(code) ON DELETE CASCADE,
     detectors_used INTEGER NOT NULL,
     cskb_collected INTEGER NOT NULL,
-    server TEXT NOT NULL DEFAULT 'Vũ trụ 1',
+    server TEXT NOT NULL DEFAULT 'Server 15',
     account_name TEXT,
     created_at TIMESTAMPTZ NOT NULL,
     note TEXT,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.cskb_sales (
     total_revenue NUMERIC NOT NULL,
     currency TEXT NOT NULL DEFAULT 'VND',
     customer_name TEXT,
-    server TEXT NOT NULL DEFAULT 'Vũ trụ 1',
+    server TEXT NOT NULL DEFAULT 'Server 15',
     created_at TIMESTAMPTZ NOT NULL,
     status TEXT NOT NULL DEFAULT 'PAID', -- PAID, DEBT
     note TEXT,
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.cskb_usages (
     loose_count INTEGER NOT NULL DEFAULT 0,
     purpose TEXT NOT NULL,
     character_name TEXT,
-    server TEXT NOT NULL DEFAULT 'Vũ trụ 1',
+    server TEXT NOT NULL DEFAULT 'Server 15',
     created_at TIMESTAMPTZ NOT NULL,
     note TEXT,
     created_by TEXT

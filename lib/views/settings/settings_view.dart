@@ -17,17 +17,20 @@ class SettingsView extends StatefulWidget {
 
 class _SettingsViewState extends State<SettingsView> {
   late TextEditingController _rateController;
+  late TextEditingController _serverController;
 
   @override
   void initState() {
     super.initState();
-    final rate = context.read<AppProvider>().exchangeRateTvToVnd;
-    _rateController = TextEditingController(text: rate.toString());
+    final provider = context.read<AppProvider>();
+    _rateController = TextEditingController(text: provider.exchangeRateTvToVnd.toString());
+    _serverController = TextEditingController(text: provider.defaultServer);
   }
 
   @override
   void dispose() {
     _rateController.dispose();
+    _serverController.dispose();
     super.dispose();
   }
 
@@ -113,6 +116,89 @@ class _SettingsViewState extends State<SettingsView> {
                           label: const Text('Lưu Tỷ Giá'),
                         ),
                       ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Card: Cài đặt Server mặc định
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.public, color: AppTheme.kiCyan, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Cài Đặt Server / Vũ Trụ Mặc Định',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Server này sẽ được tự động điền sẵn khi bạn ghi ca up, xuất dùng cá nhân hoặc tạo đơn bán',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+                    ),
+                    const Divider(height: 24, color: AppTheme.borderDark),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 12,
+                      children: [
+                        SizedBox(
+                          width: 220,
+                          child: TextField(
+                            controller: _serverController,
+                            decoration: const InputDecoration(
+                              hintText: 'Ví dụ: Server 15',
+                              prefixIcon: Icon(Icons.dns_outlined, size: 18, color: AppTheme.kiCyan),
+                            ),
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.kiCyan, foregroundColor: Colors.black),
+                          onPressed: () {
+                            final server = _serverController.text.trim();
+                            if (server.isNotEmpty) {
+                              provider.updateDefaultServer(server);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Đã cập nhật Server mặc định: $server')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text('Lưu Server'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('Chọn nhanh các server:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: AppConstants.serverList.take(8).map((s) {
+                        final isSelected = provider.defaultServer == s;
+                        return ChoiceChip(
+                          label: Text(s),
+                          selected: isSelected,
+                          selectedColor: AppTheme.kiCyan.withOpacity(0.2),
+                          onSelected: (_) {
+                            setState(() => _serverController.text = s);
+                            provider.updateDefaultServer(s);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Đã chọn Server mặc định: $s')),
+                            );
+                          },
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),

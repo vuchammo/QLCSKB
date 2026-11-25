@@ -124,7 +124,7 @@ class DatabaseService {
         loose_count INTEGER NOT NULL DEFAULT 0,
         purpose TEXT NOT NULL,
         character_name TEXT,
-        server TEXT NOT NULL DEFAULT 'Vũ trụ 1',
+        server TEXT NOT NULL DEFAULT 'Server 15',
         created_at TEXT NOT NULL,
         note TEXT
       )

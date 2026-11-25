@@ -1,3 +1,5 @@
+import '../core/constants/app_constants.dart';
+
 class FarmingSession {
   final String id;
   final int detectorsUsed; // Số máy dò đã sử dụng
@@ -11,7 +13,7 @@ class FarmingSession {
     required this.id,
     required this.detectorsUsed,
     required this.cskbCollected,
-    this.server = 'Vũ trụ 1',
+    this.server = AppConstants.defaultServer,
     this.accountName = '',
     required this.createdAt,
     this.note,
@@ -38,7 +40,7 @@ class FarmingSession {
       id: map['id'] as String,
       detectorsUsed: map['detectors_used'] as int,
       cskbCollected: map['cskb_collected'] as int,
-      server: (map['server'] as String?) ?? 'Vũ trụ 1',
+      server: (map['server'] as String?) ?? AppConstants.defaultServer,
       accountName: (map['account_name'] as String?) ?? '',
       createdAt: DateTime.parse(map['created_at'] as String),
       note: map['note'] as String?,
